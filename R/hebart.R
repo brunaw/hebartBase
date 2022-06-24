@@ -50,16 +50,16 @@ than the total number of iterations")
   }
   
   # Handling formula interface
-  formula <- stats::as.formula(paste(c(formula), "- 1"))
-  response_name <- all.vars(formula)[1]
-  names_x <- all.vars(formula[[3]])
+  formula_int <- stats::as.formula(paste(c(formula), "- 1"))
+  response_name <- all.vars(formula_int)[1]
+  names_x <- all.vars(formula_int[[3]])
   
   #data    <- dplyr::select(data, c(!!response_name, !!names_x, !!group_variable))
   data    <- dplyr::select(data, c(!!response_name, !!names_x, "group"))
   names(data)[names(data) == group_variable] <- "group"
   groups  <- data$group
-  mf      <- stats::model.frame(formula, data = data)
-  X       <- as.matrix(stats::model.matrix(formula, mf))
+  mf      <- stats::model.frame(formula_int, data = data)
+  X       <- as.matrix(stats::model.matrix(formula_int, mf))
   y       <- stats::model.extract(mf, "response")
   
   # Extract control parameters
@@ -239,11 +239,13 @@ than the total number of iterations")
   } # End iterations loop
   cat("\n") # Make sure progress bar ends on a new line
   
-  return(list(
-    trees = tree_store,
-    sigma = sigma_store,
-    y_hat = y_hat_store * y_sd + y_mean,
-    log_lik = log_lik_store,
+  
+  result <- list(
+    formula   = formula, 
+    trees     = tree_store,
+    sigma     = sigma_store,
+    y_hat     = y_hat_store * y_sd + y_mean,
+    log_lik   = log_lik_store,
     full_cond = full_cond_store,
     y = y,
     X = X,
@@ -251,6 +253,21 @@ than the total number of iterations")
     burn = burn,
     thin = thin,
     store_size = store_size,
-    num_trees = num_trees
-  ))
+    num_trees  = num_trees
+  )
+  
+  # RMSE calculation
+  pred <- predict_hebart(X, groups, result,
+                        type = "mean")
+  mse                 <- mean((pred - y)^2)
+  r.squared           <- 1 - mse / var(y)
+  
+  result$mse           <- mse
+  result$r.squared     <- r.squared
+  result$num_variables <- length(names_x)
+  
+  class(result) <- "hebart"
+  
+  
+  return(result = result)
 } # End main function
