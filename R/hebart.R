@@ -12,6 +12,8 @@
 #' @param priors A list with prior hyperparameters as defined by the model
 #' @param inits A list with initial values for parameters
 #' @param MCMC A list with MCMC parameters
+#' @param k_1_pars A list to decide whether to sample k1 or not and if yes, from
+#' which range
 #' @return A list containing:
 #'  Everything 
 #' @details
@@ -41,7 +43,11 @@ hebart <- function(
     iter = 500, # Number of iterations
     burn = 150, # Size of burn in
     thin = 1
-  ) # Amount of thinning
+  ), # Amount of thinning
+  k_1_pars = list(sample_k1 = TRUE, 
+                  min_u     = 0, 
+                  max_u     = 15, 
+                  k1_prior  = TRUE)
 ) {
   
   if(MCMC$iter <= MCMC$burn){
@@ -83,6 +89,12 @@ than the total number of iterations")
   burn <- MCMC$burn # Size of burn in
   thin <- MCMC$thin # Amount of thinning
   
+  # k_1 sampling parameters
+  sample_k1 <- k_1_pars$sample_k1
+  min_u     <- k_1_pars$min_u
+  max_u     <- k_1_pars$max_u
+  k1_prior  <- k_1_pars$k1_prior
+  
   # Storage containers
   store_size      <- (iter - burn) / thin
   tree_store      <- vector("list", store_size)
@@ -90,6 +102,7 @@ than the total number of iterations")
   y_hat_store     <- matrix(NA, ncol = length(y), nrow = store_size)
   log_lik_store   <- rep(NA, store_size)
   full_cond_store <- matrix(NA, ncol = num_trees, nrow = store_size)
+  samples_k1      <- rep(NA, store_size)
   
   # Scale the response target variable
   y_mean   <- mean(y)
@@ -234,6 +247,15 @@ than the total number of iterations")
     )
     sigma <- 1 / sqrt(tau)
     
+    # Sample k1
+    if(sample_k1){
+      # We can set these parameters more smartly
+      sampled_k1 <- update_k1(y, min_u, max_u, k_1, k_2, M, nu, lambda, prior = k1_prior)
+      
+      samples_k1[i] <- k_1
+      if(sampled_k1 != k_1){ samples_k1[i] <- k_1 <- sampled_k1 }
+    }
+    
     # Get the overall log likelihood
     log_lik <- sum(stats::dnorm(y_scale, mean = predictions, sd = sigma, log = TRUE))
   } # End iterations loop
@@ -256,11 +278,15 @@ than the total number of iterations")
     num_trees  = num_trees
   )
   
+  # Saving the k_1 samples 
+  if(sample_k1) result$samples_k1 <-  samples_k1
+
+  
   # RMSE calculation
   pred <- predict_hebart(X, groups, result,
                         type = "mean")
   mse                 <- mean((pred - y)^2)
-  r.squared           <- 1 - mse / var(y)
+  r.squared           <- 1 - mse / stats::var(y)
   
   result$mse           <- mse
   result$r.squared     <- r.squared

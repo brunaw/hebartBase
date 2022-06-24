@@ -12,7 +12,8 @@ hebart(
   control = list(node_min_size = 5),
   priors = list(alpha = 0.95, beta = 2, k_1 = 1e-10, k_2 = 0.2, nu = 3, lambda = 0.1),
   inits = list(tau = 1),
-  MCMC = list(iter = 1250, burn = 250, thin = 1)
+  MCMC = list(iter = 500, burn = 150, thin = 1),
+  k_1_pars = list(sample_k1 = TRUE, min_u = 0, max_u = 15, k1_prior = TRUE)
 )
 }
 \arguments{
@@ -31,6 +32,9 @@ hebart(
 \item{inits}{A list with initial values for parameters}
 
 \item{MCMC}{A list with MCMC parameters}
+
+\item{k_1_pars}{A list to decide whether to sample k1 or not and if yes, from
+which range}
 }
 \value{
 A list containing:

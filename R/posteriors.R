@@ -252,3 +252,61 @@ update_tau <- function(S, nu, lambda, n) {
   
   return(tau)
 }
+
+
+#' @name full_conditional_hebart
+#' @author Bruna Wundervald, \email{brunadaviesw@gmail.com}, Andrew Parnell
+#' @export
+#' @title Full conditional of all the data 
+#' @description A function that returns the full conditional value
+#' @param y The y vector
+#' @param k_1 The current value of k_1
+#' @param k_2 The current value of k_2
+#' @param M The group matrix
+#' @param nu The current value of nu
+#' @param lambda The current value of lambda
+#' 
+full_conditional_hebart <- function(y, k_1, k_2, M, nu, lambda) {
+  n = length(y)
+  W <- k_2 * matrix(1, nrow = n, ncol = n) + k_1 * M %*% t(M) + diag(n)
+  log_cond <- 0.5 * logdet(W) + lgamma(n / 2 + nu / 2) - (n / 2 + nu / 2) *
+      log(lambda / 2 + 0.5 * t(y) %*% solve(W, y))
+  return(log_cond)
+}
+
+#' @name update_k1
+#' @author Bruna Wundervald, \email{brunadaviesw@gmail.com}, Andrew Parnell
+#' @export
+#' @title Update k1
+#' @description Samples values from the posterior distribution of k1
+#' @param y The y vector
+#' @param min_u The lower bound of the sampled values of k1
+#' @param max_u The upper bound of the sampled values of k1
+#' @param k_1 The current value of k_1
+#' @param k_2 The current value of k_2
+#' @param M The group matrix
+#' @param nu The current value of nu
+#' @param lambda The current value of lambda
+#' @param prior Logical to decide whether to use a prior (set as 
+#' dweibull(7, 10) for now)
+#' 
+# Update k1 --------------------------------------------------------------
+
+update_k1 <- function(y, min_u, max_u, k_1, k_2, M, nu, lambda, prior = TRUE){
+  new_k1    <- stats::runif(1, min = min_u, max = max_u)
+  current   <- full_conditional_hebart(y, k_1, k_2, M, nu, lambda)
+  candidate <- full_conditional_hebart(y, new_k1, k_2, M, nu, lambda)
+  
+  if(prior){
+    prior_current   <- stats::dweibull(k_1, shape = 7, 10, log = TRUE)
+    prior_candidate <- stats::dweibull(new_k1, shape = 7, 10, log = TRUE)
+    log.alpha <- (candidate - current) + (prior_candidate - prior_current) # ll is the log likelihood, lprior the log prior
+  } else {
+    log.alpha <- candidate - current
+  }
+  
+  accept <- log.alpha >= 0 || log.alpha >= log(stats::runif(1))
+  theta <- ifelse(accept, new_k1, k_1)
+  return(theta)
+}
+  
