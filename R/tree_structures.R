@@ -5,12 +5,12 @@
 #' @description A function that returns a tree stump (initial tree) given
 #' # the model characteristics
 #' @param num_trees The number of trees
-#' @param num_groups The number of groups
+#' @param groups The groups
 #' @param y The response variable
 #' @param X The set of covariates 
 # Function to create stump ------------------------------------------------
 create_stump <- function(num_trees,
-                         num_groups,
+                         groups, 
                          y,
                          X) {
   
@@ -27,6 +27,8 @@ create_stump <- function(num_trees,
   # mu values for each group
   # Node size
   
+  group_names     <- unique(groups)
+  num_groups      <- length(unique(groups))
   # Create holder for trees
   all_trees <- vector("list", length = num_trees)
   # Loop through trees
@@ -53,7 +55,7 @@ create_stump <- function(num_trees,
       "split_variable",
       "split_value",
       "mu",
-      paste0("mu", 1:num_groups),
+      paste0("mu", sort(group_names)),
       "node_size"
     )
     
@@ -170,7 +172,14 @@ grow_tree <- function(X, y, num_groups, curr_tree, node_min_size) {
     new_tree$node_indices == node_to_split,
     split_variable
   ]))
-  split_value <- sample(available_values[-c(1, length(available_values))], 1)
+  
+  # If we don't have many options to split on, correct that 
+  len_values <- length(available_values)
+  if(len_values <  4){
+    split_value <- sample(available_values, 1)  
+  } else {
+    split_value <- sample(available_values[-c(1, len_values)], 1)
+  }
   
   curr_parent <- new_tree$tree_matrix[node_to_split, "parent"] # Make sure to keep the current parent in there. Will be NA if at the root node
   new_tree$tree_matrix[node_to_split, 1:6] <- c(
@@ -183,7 +192,7 @@ grow_tree <- function(X, y, num_groups, curr_tree, node_min_size) {
   )
   
   #  Fill in the parents of these two nodes
-  new_tree$tree_matrix[nrow(new_tree$tree_matrix), "parent"] <- node_to_split
+  new_tree$tree_matrix[nrow(new_tree$tree_matrix),     "parent"] <- node_to_split
   new_tree$tree_matrix[nrow(new_tree$tree_matrix) - 1, "parent"] <- node_to_split
   
   # Now call the fill function on this tree

@@ -60,8 +60,8 @@ than the total number of iterations")
   response_name <- all.vars(formula_int)[1]
   names_x <- all.vars(formula_int[[3]])
   
-  #data    <- dplyr::select(data, c(!!response_name, !!names_x, !!group_variable))
-  data    <- dplyr::select(data, c(!!response_name, !!names_x, "group"))
+  data    <- dplyr::select(data, c(!!response_name, !!names_x, !!group_variable))
+  #data    <- dplyr::select(data, c(!!response_name, !!names_x, "group"))
   names(data)[names(data) == group_variable] <- "group"
   groups  <- data$group
   mf      <- stats::model.frame(formula_int, data = data)
@@ -118,12 +118,13 @@ than the total number of iterations")
   # Create a list of trees for the initial stump
   curr_trees <- create_stump(
     num_trees  = num_trees,
-    num_groups = num_groups,
+    groups     = groups, 
     y          = y_scale,
     X          = X
   )
   # predictions <- get_predictions(curr_trees, X, single_tree = num_trees == 1)
-  predictions <- get_group_predictions(curr_trees, X, groups, single_tree = num_trees == 1)
+  predictions <- get_group_predictions(trees = curr_trees, X,
+                                       groups, single_tree = num_trees == 1)
   
   # Set up a progress bar
   pb <- utils::txtProgressBar(
@@ -227,7 +228,7 @@ than the total number of iterations")
       # Finally update the group means:
       curr_trees[[j]] <- simulate_mu_groups_hebart(
         tree = curr_trees[[j]],
-        current_partial_residuals,
+        R = current_partial_residuals,
         groups,
         tau, k_1, k_2
       )

@@ -57,14 +57,15 @@ get_group_predictions <- function(trees, X, groups, single_tree = FALSE) {
   # Stop nesting problems in case of multiple trees
   if (is.null(names(trees)) & (length(trees) == 1)) trees <- trees[[1]]
   
-  num_groups <- length(unique(groups))
-  group_col_names <- unique(paste0("mu", groups))
+  group_names     <- unique(groups)
+  num_groups      <- length(unique(groups))
+  group_col_names <- paste0("mu", group_names)
   
   # Normally trees will be a list of lists but just in case
   if (single_tree) {
     # Deal with just a single tree
     if (nrow(trees$tree_matrix) == 1) {
-      predictions <- trees$tree_matrix[1, group_col_names][groups]
+      predictions <- trees$tree_matrix[1, sort(group_col_names)][groups]
     } else {
       # Loop through the node indices to get predictions
       predictions <- rep(NA, nrow(X))

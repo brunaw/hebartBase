@@ -203,7 +203,10 @@ simulate_mu_groups_hebart <- function(tree, R, groups, tau, k_1, k_2) {
   # Get node sizes for each terminal node
   nj <- tree$tree_matrix[which_terminal, "node_size"]
   
-  num_groups <- length(unique(groups))
+  group_names     <- unique(groups)
+  num_groups      <- length(unique(groups))
+  group_col_names <- paste0("mu", group_names)
+  df_groups       <- data.frame(groups = group_names)
   
   # Get the group means in each terminal node
   # Doing this with loops but probably can be faster
@@ -211,19 +214,27 @@ simulate_mu_groups_hebart <- function(tree, R, groups, tau, k_1, k_2) {
     curr_R           <- R[tree$node_indices == which_terminal[i]]
     curr_groups      <- groups[tree$node_indices == which_terminal[i]]
     curr_group_sizes <- table(curr_groups)
-    group_R_means    <- stats::aggregate(curr_R, by = list(curr_groups), "sum")[, 2]
+    means            <- data.frame(curr_R = curr_R, groups = curr_groups)
+    # Correcting for missing groups in the node
+    means            <- dplyr::group_by(means, groups) |> 
+      dplyr::summarise(mean_curr_R = mean(curr_R)) |> 
+      dplyr::right_join(df_groups, by = "groups") 
+    means$mean_curr_R[which(is.na(means$mean_curr_R))] <- mean(means$mean_curr_R, na.rm = TRUE)
+    group_R_means    <- means$mean_curr_R
     curr_mu          <- tree$tree_matrix[which_terminal[i], "mu"]
-    curr_group_mu     <- stats::rnorm(num_groups,
-                                      mean = (curr_mu / k_1 + group_R_means) / (curr_group_sizes + 1 / k_1),
-                                      sd = sqrt(1 / (curr_group_sizes + 1 / k_1))
+    
+    curr_group_mu     <- stats::rnorm(
+      num_groups,
+      mean = (curr_mu / k_1 + group_R_means) / (curr_group_sizes + 1 / k_1),
+      sd = sqrt(1 / (curr_group_sizes + 1 / k_1))
     )
-    tree$tree_matrix[which_terminal[i], paste0("mu", 1:num_groups)] <- curr_group_mu
+    tree$tree_matrix[which_terminal[i], sort(group_col_names)] <- curr_group_mu
     
   }
   
   # Wipe all the old mu groups out for other nodes
   which_non_terminal <- which(tree$tree_matrix[, "terminal"] == 0)
-  tree$tree_matrix[which_non_terminal, paste0("mu", 1:num_groups)] <- NA
+  tree$tree_matrix[which_non_terminal, sort(group_col_names)] <- NA
   
   return(tree)
 }
