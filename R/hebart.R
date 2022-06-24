@@ -69,8 +69,8 @@ than the total number of iterations")
   y       <- stats::model.extract(mf, "response")
   
   # Extract control parameters
-  node_min_size <- control$node_min_size
-  
+  # node_min_size <- control$node_min_size
+  node_min_size <- 5
   # Extract hyper-parameters
   alpha   <- priors$alpha # Tree shape parameter 1
   beta    <- priors$beta # Tree shape parameter 2

@@ -5,7 +5,7 @@
 \alias{update_tree}
 \title{Create tree stumps}
 \usage{
-create_stump(num_trees, num_groups, y, X)
+create_stump(num_trees, groups, y, X)
 
 update_tree(
   X,
@@ -19,11 +19,13 @@ update_tree(
 \arguments{
 \item{num_trees}{The number of trees}
 
-\item{num_groups}{The number of groups}
+\item{groups}{The groups}
 
 \item{y}{The response variable}
 
 \item{X}{The set of covariates}
+
+\item{num_groups}{The number of groups}
 
 \item{type}{The action: grow, prune, change or swap}
 
