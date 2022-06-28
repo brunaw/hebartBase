@@ -126,12 +126,16 @@ than the total number of iterations")
   predictions <- get_group_predictions(trees = curr_trees, X,
                                        groups, single_tree = num_trees == 1)
   
+  
+  #iter = 20
+  #sample_k1 = TRUE
   # Set up a progress bar
   pb <- utils::txtProgressBar(
     min = 1, max = iter,
     style = 3, width = 60,
     title = "Running rBART..."
   )
+  
   
   # Start the iterations loop
   for (i in 1:iter) {
@@ -175,7 +179,7 @@ than the total number of iterations")
       new_trees[[j]] <- update_tree(
         y = y_scale,
         X = X,
-        num_groups = num_groups,
+        groups = groups,
         type = type,
         curr_tree = curr_trees[[j]],
         node_min_size = node_min_size
@@ -219,10 +223,16 @@ than the total number of iterations")
       } # End of accept if statement
       
       # Update mu whether tree accepted or not
-      curr_trees[[j]] <- simulate_mu_hebart(
-        tree = curr_trees[[j]],
+      # curr_trees[[j]] <- simulate_mu_hebart(
+      #   tree = curr_trees[[j]],
+      #   R = current_partial_residuals,
+      #   tau, k_1, k_2, num_groups = num_groups
+      # )
+      curr_trees[[j]] <- simulate_mu_hebart_2(
+        tree      = curr_trees[[j]],
         R = current_partial_residuals,
-        tau, k_1, k_2
+        tau, k_1, k_2, groups, 
+        type = type
       )
       
       # Finally update the group means:
@@ -232,6 +242,7 @@ than the total number of iterations")
         groups,
         tau, k_1, k_2
       )
+       
       
       # Check the trees
       if (any(curr_trees$tree_matrix[, "node_size"] < node_min_size)) browser()
@@ -241,7 +252,7 @@ than the total number of iterations")
     predictions <- get_group_predictions(curr_trees, X, groups, single_tree = num_trees == 1)
     # predictions <- get_predictions(curr_trees, X, single_tree = num_trees == 1)
     S <- sum((y_scale - predictions)^2)
-    
+    # print(S)
     # Update tau and sigma
     tau <- update_tau(S, nu, lambda,
                       n = length(y_scale)
@@ -252,7 +263,7 @@ than the total number of iterations")
     if(sample_k1){
       # We can set these parameters more smartly
       sampled_k1 <- update_k1(y, min_u, max_u, k_1, k_2, M, nu, lambda, prior = k1_prior)
-      
+
       samples_k1[i] <- k_1
       if(sampled_k1 != k_1){ samples_k1[i] <- k_1 <- sampled_k1 }
     }
@@ -286,8 +297,8 @@ than the total number of iterations")
   # RMSE calculation
   pred <- predict_hebart(X, groups, result,
                         type = "mean")
-  mse                 <- mean((pred - y)^2)
-  r.squared           <- 1 - mse / stats::var(y)
+  mse                 <- mean((pred - y_scale)^2)
+  r.squared           <- 1 - mse / stats::var(y_scale)
   
   result$mse           <- mse
   result$r.squared     <- r.squared

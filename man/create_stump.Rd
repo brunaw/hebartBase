@@ -10,7 +10,7 @@ create_stump(num_trees, groups, y, X)
 update_tree(
   X,
   y,
-  num_groups,
+  groups,
   type = c("grow", "prune", "change", "swap"),
   curr_tree,
   node_min_size
@@ -24,8 +24,6 @@ update_tree(
 \item{y}{The response variable}
 
 \item{X}{The set of covariates}
-
-\item{num_groups}{The number of groups}
 
 \item{type}{The action: grow, prune, change or swap}
 

@@ -76,7 +76,7 @@ create_stump <- function(num_trees,
 #' # the model characteristics
 #' @param X The set of covariates
 #' @param y The response variable
-#' @param num_groups The number of groups
+#' @param groups The groups
 #' @param type The action: grow, prune, change or swap
 #' @param curr_tree The current state of the tree
 #' @param node_min_size The minimum number of observations in 
@@ -85,7 +85,7 @@ create_stump <- function(num_trees,
 update_tree <- function(
                         X, # Feature matrix
                         y, # Target variable
-                        num_groups, # Number of groups
+                        groups, # Number of groups
                         type = c(
                           "grow", # Grow existing tree
                           "prune", # Prune existing tree
@@ -108,10 +108,11 @@ update_tree <- function(
   # mu values for each group
   # Node size
   
+  num_groups      <- length(unique(groups))
   # Call the appropriate function to get the new tree
   new_tree <- switch(type,
                      grow = grow_tree(X, y, num_groups, curr_tree, node_min_size),
-                     prune = prune_tree(X, y, curr_tree),
+                     prune = prune_tree(X, y, curr_tree, groups),
                      change = change_tree(X, y, curr_tree, node_min_size),
                      swap = swap_tree(X, y, curr_tree, node_min_size)
   )
@@ -175,7 +176,7 @@ grow_tree <- function(X, y, num_groups, curr_tree, node_min_size) {
   
   # If we don't have many options to split on, correct that 
   len_values <- length(available_values)
-  if(len_values <  4){
+  if(len_values <  3){
     split_value <- sample(available_values, 1)  
   } else {
     split_value <- sample(available_values[-c(1, len_values)], 1)
@@ -212,12 +213,17 @@ grow_tree <- function(X, y, num_groups, curr_tree, node_min_size) {
 #' @title Prunes a tree
 #' @description A function that returns a pruned tree
 #' @param X The set of covariates 
-#' @param y The response variablef groups
+#' @param y The response variable groups
 #' @param curr_tree The current state of the tree
+#' @param groups The groups
 
 # Prune_tree function -----------------------------------------------------
 
-prune_tree <- function(X, y, curr_tree) {
+prune_tree <- function(X, y, curr_tree, groups) {
+  
+  group_names     <- unique(groups)
+  num_groups      <- length(unique(groups))
+  group_col_names <- paste0("mu", group_names)
   
   # Create placeholder for new tree
   new_tree <- curr_tree
@@ -254,10 +260,14 @@ prune_tree <- function(X, y, curr_tree) {
     }
   } # End of bad node to prune while loop
   
+  # Collapse the mu_js from the rows that will be deleted 
+  mu_js_to_collapse <- new_tree$tree_matrix[c(child_left, child_right), sort(group_col_names)]
+  mu_js_to_collapse <- colMeans(mu_js_to_collapse)
+  
   # Delete these two rows from the tree matrix
   new_tree$tree_matrix <- new_tree$tree_matrix[-c(child_left, child_right), ,
-                                               drop = FALSE
-  ]
+                                               drop = FALSE]
+  
   # Make this node terminal again with no children or split values
   new_tree$tree_matrix[parent_pick, c(
     "terminal",
@@ -266,6 +276,9 @@ prune_tree <- function(X, y, curr_tree) {
     "split_variable",
     "split_value"
   )] <- c(1, NA, NA, NA, NA)
+  
+  # Filling mu_js value
+  new_tree$tree_matrix[parent_pick, sort(group_col_names)] <- mu_js_to_collapse
   
   # If we're back to a stump no need to call fill_tree_details
   if (nrow(new_tree$tree_matrix) == 1) {

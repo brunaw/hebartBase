@@ -147,11 +147,12 @@ get_tree_prior <- function(tree, alpha, beta) {
 #' @param R The corresponding residuals for the tree
 #' @param tau The  current value of tau
 #' @param k_1 The  current value of k_1
-#' @param k_2 The  current value of k_2 
+#' @param k_2 The  current value of k_2
+#' @param num_groups The number of groups 
 #' 
 # Simulate_mu -------------------------------------------------------------
 
-simulate_mu_hebart <- function(tree, R, tau, k_1, k_2) {
+simulate_mu_hebart <- function(tree, R, tau, k_1, k_2, num_groups) {
   
   # Simulate mu values for a given tree
   
@@ -167,7 +168,7 @@ simulate_mu_hebart <- function(tree, R, tau, k_1, k_2) {
   # Now calculate mu values
   mu <- stats::rnorm(length(nj),
                      mean = (sumR / k_1) / (nj / k_1 + 1 / k_2),
-                     sd = sqrt(1 / (tau * nj / k_1 + 1 / k_2))
+                     sd = sqrt(1 / (tau * (nj / k_1 + 1 / k_2)))
   )
   
   # Wipe all the old mus out for other nodes
@@ -175,6 +176,89 @@ simulate_mu_hebart <- function(tree, R, tau, k_1, k_2) {
   
   # Put in just the ones that are useful
   tree$tree_matrix[which_terminal, "mu"] <- mu
+  
+  return(tree)
+}
+
+simulate_mu_hebart_2 <- function(tree, R, tau, k_1, k_2, groups, type) {
+  
+  # psi  <- k_1 * M %*% t(M) + diag(n)
+  # mean <- (rep(1, n) %*% solve(psi, R)) / (rep(1, n) %*% solve(psi, rep(1, n)) + (1/k_2))
+  # var  <- 1/((rep(1, n) %*% solve(psi, rep(1, n)) + (1/k_2))*tau)
+  # Simulate mu values for a given tree
+  
+  # First find which rows are terminal nodes
+  which_terminal <- which(tree$tree_matrix[, "terminal"] == 1)
+  
+  # Get node sizes for each terminal node
+  nj <- tree$tree_matrix[which_terminal, "node_size"]
+  
+  group_names     <- unique(groups)
+  num_groups      <- length(unique(groups))
+  group_col_names <- paste0("mu", group_names)
+  #df_groups       <- data.frame(groups = group_names)
+  
+  # mu_js 
+  mu_js <- tree$tree_matrix[, c("terminal", sort(group_col_names))]
+  # existing node indices:
+  if(type == "grow"){
+    if(nrow(mu_js) > 1){
+      inds           <- unique(tree$node_indices)
+      mu_js          <- cbind(mu_js, node_index = 1:max(inds))
+      non_na_mu_js   <- stats::na.omit(mu_js)
+      which_ind      <- non_na_mu_js[, "node_index"]
+      which_to_dup   <- which_ind[which(!which_ind %in% inds)]
+      non_dup        <- which_ind[which(which_ind %in% inds)]
+      new_inds       <- inds[which(!inds %in% non_dup)]
+      
+      mu_js         <- rbind(mu_js, mu_js[which_to_dup, ])
+      mu_js         <- stats::na.omit(mu_js)
+      mu_js[mu_js[, "node_index"] == which_to_dup, "node_index"] <- new_inds
+      correct_inds  <- mu_js[, "node_index"]
+      curr_sum_mu   <- rowSums(mu_js[, sort(group_col_names)])              
+      
+    } else{
+      curr_sum_mu <- sum(stats::na.omit(mu_js))
+      correct_inds <- 2
+    }
+  } else if(type == "prune"){
+    if(nrow(mu_js) > 1){
+      # For prune, 
+      inds            <- unique(tree$node_indices)
+      mu_js           <- cbind(mu_js, node_index = 1:max(inds))
+      #non_na_mu_js    <- stats::na.omit(mu_js)
+      # Nodes that were not changed: 
+      #which_ind       <- non_na_mu_js[, "node_index"]
+      # Nodes that were created 
+      #which_to_update <- inds[which(!inds %in% which_ind)]
+      #which_to_keep   <- which_ind[which(which_ind %in% inds)]
+      
+      #mu_js           <- mu_js[mu_js[, "node_index"] %in% which_to_keep, ]
+      mu_js           <- stats::na.omit(mu_js)
+      correct_inds  <- mu_js[, "node_index"]
+      curr_sum_mu   <- rowSums(mu_js[, sort(group_col_names)])              
+      
+    } else {
+      curr_sum_mu <- sum(stats::na.omit(mu_js))
+      correct_inds <- 2
+    }
+  }
+  
+  
+  mu <- stats::rnorm(length(nj),
+                     mean = (curr_sum_mu / k_1) / (num_groups / k_1 + 1 / k_2),
+                     sd = sqrt(1 / (tau * (num_groups / k_1 + 1 / k_2)))
+  )
+  
+  # Get sum of residuals in each terminal node
+  #sumR <- stats::aggregate(R, by = list(tree$node_indices), sum)[, 2]
+  
+  # Wipe all the old mus out for other nodes
+  tree$tree_matrix[, "mu"] <- NA
+  
+  # Put in just the ones that are useful
+  #tree$tree_matrix[which_terminal, "mu"] <- mu
+  tree$tree_matrix[correct_inds, "mu"] <- mu
   
   return(tree)
 }
@@ -213,21 +297,26 @@ simulate_mu_groups_hebart <- function(tree, R, groups, tau, k_1, k_2) {
   for (i in 1:length(nj)) {
     curr_R           <- R[tree$node_indices == which_terminal[i]]
     curr_groups      <- groups[tree$node_indices == which_terminal[i]]
-    curr_group_sizes <- table(curr_groups)
-    means            <- data.frame(curr_R = curr_R, groups = curr_groups)
+    curr_group_sizes <- data.frame(groups = curr_groups) |> 
+      dplyr::count(groups)
+    means            <- data.frame(curr_R = curr_R, 
+                                   groups = curr_groups)
     # Correcting for missing groups in the node
-    means            <- dplyr::group_by(means, groups) |> 
-      dplyr::summarise(mean_curr_R = mean(curr_R)) |> 
+    means            <- dplyr::group_by(means, groups) |>
+      # sum, not mean
+      dplyr::summarise(mean_curr_R = sum(curr_R)) |> 
+      dplyr::left_join(curr_group_sizes, by = "groups") |> 
       dplyr::right_join(df_groups, by = "groups") 
-    means$mean_curr_R[which(is.na(means$mean_curr_R))] <- mean(means$mean_curr_R, na.rm = TRUE)
-    group_R_means    <- means$mean_curr_R
-    curr_mu          <- tree$tree_matrix[which_terminal[i], "mu"]
-    
+    means <- stats::na.omit(means)
+    group_R_means     <- means$mean_curr_R
+    curr_mu           <- tree$tree_matrix[which_terminal[i], "mu"]
+    curr_group_sizes  <- means$n
     curr_group_mu     <- stats::rnorm(
       num_groups,
       mean = (curr_mu / k_1 + group_R_means) / (curr_group_sizes + 1 / k_1),
-      sd = sqrt(1 / (curr_group_sizes + 1 / k_1))
+      sd = sqrt(1 / (tau * (curr_group_sizes + 1 / k_1)))
     )
+    
     tree$tree_matrix[which_terminal[i], sort(group_col_names)] <- curr_group_mu
     
   }
@@ -279,9 +368,10 @@ update_tau <- function(S, nu, lambda, n) {
 #' 
 full_conditional_hebart <- function(y, k_1, k_2, M, nu, lambda) {
   n = length(y)
-  W <- k_2 * matrix(1, nrow = n, ncol = n) + k_1 * M %*% t(M) + diag(n)
-  log_cond <- 0.5 * logdet(W) + lgamma(n / 2 + nu / 2) - (n / 2 + nu / 2) *
-      log(lambda / 2 + 0.5 * t(y) %*% solve(W, y))
+  W_1 <- (k_2 * matrix(1, nrow = n, ncol = n)) + (k_1 * M %*% t(M)) + diag(n)
+  # lgamma(n / 2 + nu / 2) = will be the same for either k_1
+  log_cond <- - 0.5 * logdet(W_1) - ((n / 2 + nu / 2) *
+    log(lambda / 2 + 0.5 * t(y) %*% solve(W_1, y)))
   return(log_cond)
 }
 
@@ -299,7 +389,7 @@ full_conditional_hebart <- function(y, k_1, k_2, M, nu, lambda) {
 #' @param nu The current value of nu
 #' @param lambda The current value of lambda
 #' @param prior Logical to decide whether to use a prior (set as 
-#' dweibull(7, 10) for now)
+#' dweibull(1, 5) for now)
 #' 
 # Update k1 --------------------------------------------------------------
 
@@ -309,8 +399,8 @@ update_k1 <- function(y, min_u, max_u, k_1, k_2, M, nu, lambda, prior = TRUE){
   candidate <- full_conditional_hebart(y, new_k1, k_2, M, nu, lambda)
   
   if(prior){
-    prior_current   <- stats::dweibull(k_1, shape = 7, 10, log = TRUE)
-    prior_candidate <- stats::dweibull(new_k1, shape = 7, 10, log = TRUE)
+    prior_current   <- stats::dweibull(k_1, shape = 1, 5, log = TRUE)
+    prior_candidate <- stats::dweibull(new_k1, shape = 1, 5, log = TRUE)
     log.alpha <- (candidate - current) + (prior_candidate - prior_current) # ll is the log likelihood, lprior the log prior
   } else {
     log.alpha <- candidate - current
@@ -320,4 +410,3 @@ update_k1 <- function(y, min_u, max_u, k_1, k_2, M, nu, lambda, prior = TRUE){
   theta <- ifelse(accept, new_k1, k_1)
   return(theta)
 }
-  

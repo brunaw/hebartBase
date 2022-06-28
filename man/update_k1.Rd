@@ -24,7 +24,7 @@ update_k1(y, min_u, max_u, k_1, k_2, M, nu, lambda, prior = TRUE)
 \item{lambda}{The current value of lambda}
 
 \item{prior}{Logical to decide whether to use a prior (set as 
-dweibull(7, 10) for now)}
+dweibull(1, 5) for now)}
 }
 \description{
 Samples values from the posterior distribution of k1
