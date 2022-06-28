@@ -1,43 +1,48 @@
-# # Get predictions ---------------------------------------------------------
-# 
-# # Gets the predicted values from a current set of trees
-# get_predictions <- function(trees, X, single_tree = FALSE) {
-#   
-#   # Stop nesting problems in case of multiple trees
-#   if (is.null(names(trees)) & (length(trees) == 1)) trees <- trees[[1]]
-#   
-#   # Normally trees will be a list of lists but just in case
-#   if (single_tree) {
-#     # Deal with just a single tree
-#     if (nrow(trees$tree_matrix) == 1) {
-#       predictions <- rep(trees$tree_matrix[1, "mu"], nrow(X))
-#     } else {
-#       # Loop through the node indices to get predictions
-#       predictions <- rep(NA, nrow(X))
-#       unique_node_indices <- unique(trees$node_indices)
-#       # Get the node indices for the current X matrix
-#       curr_X_node_indices <- fill_tree_details(trees, X)$node_indices
-#       # Now loop through all node indices to fill in details
-#       for (i in 1:length(unique_node_indices)) {
-#         predictions[curr_X_node_indices == unique_node_indices[i]] <-
-#           trees$tree_matrix[unique_node_indices[i], "mu"]
-#       }
-#     }
-#     # More here to deal with more complicated trees - i.e. multiple trees
-#   } else {
-#     # Do a recursive call to the function
-#     partial_trees <- trees
-#     partial_trees[[1]] <- NULL # Blank out that element of the list
-#     predictions <- get_predictions(trees[[1]], X, single_tree = TRUE) +
-#       get_predictions(partial_trees, X,
-#                       single_tree = length(partial_trees) == 1
-#       )
-#     # single_tree = !is.null(names(partial_trees)))
-#     # The above only sets single_tree to if the names of the object is not null (i.e. is a list of lists)
-#   }
-#   
-#   return(predictions)
-# }
+#' @name get_predictions
+#' @author Bruna Wundervald, \email{brunadaviesw@gmail.com}, Andrew Parnell
+#' @export
+#' @title HEBART Group predictions
+#' @description A function that returns the group predictions for a hebart model
+#' @param trees The current trees
+#' @param X The set of covariates
+#' @param single_tree Logical to indicate whether we only have one tree
+#' 
+get_predictions = function(trees, X, single_tree = FALSE) {
+  
+  # Stop nesting problems in case of multiple trees
+  if(is.null(names(trees)) & (length(trees) == 1)) trees = trees[[1]]
+  
+  # Normally trees will be a list of lists but just in case
+  if(single_tree) {
+    # Deal with just a single tree
+    if(nrow(trees$tree_matrix) == 1) {
+      predictions = rep(trees$tree_matrix[1, 'mu'], nrow(X))
+    } else {
+      # Loop through the node indices to get predictions
+      predictions = rep(NA, nrow(X))
+      unique_node_indices = unique(trees$node_indices)
+      # Get the node indices for the current X matrix
+      curr_X_node_indices = fill_tree_details(trees, X)$node_indices
+      # Now loop through all node indices to fill in details
+      for(i in 1:length(unique_node_indices)) {
+        predictions[curr_X_node_indices == unique_node_indices[i]] = 
+          trees$tree_matrix[unique_node_indices[i], 'mu']
+      }
+    }
+    # More here to deal with more complicated trees - i.e. multiple trees
+  } else {
+    # Do a recursive call to the function 
+    partial_trees = trees 
+    partial_trees[[1]] = NULL # Blank out that element of the list
+    predictions = get_predictions(trees[[1]], X, single_tree = TRUE)  + 
+      get_predictions(partial_trees, X, 
+                      single_tree = length(partial_trees) == 1)
+    #single_tree = !is.null(names(partial_trees)))
+    # The above only sets single_tree to if the names of the object is not null (i.e. is a list of lists)
+  }
+  
+  return(predictions)
+}
 
 
 #' @name get_group_predictions

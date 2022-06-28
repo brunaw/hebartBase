@@ -28,12 +28,12 @@ hebart <- function(
   formula, 
   data, 
   group_variable, # groups is the group number of each obs
-  num_trees = 1, # Number of trees
+  num_trees = 2, # Number of trees
   control = list(node_min_size = 5), # Size of smallest nodes
   priors = list(
     alpha = 0.95, # Prior control list
     beta = 2,
-    k_1 = 1e-10,
+    k_1 = 1,
     k_2 = 0.2,
     nu = 3,
     lambda = 0.1
@@ -46,7 +46,7 @@ hebart <- function(
   ), # Amount of thinning
   k_1_pars = list(sample_k1 = TRUE, 
                   min_u     = 0, 
-                  max_u     = 15, 
+                  max_u     = 5, 
                   k1_prior  = TRUE)
 ) {
   
@@ -127,7 +127,7 @@ than the total number of iterations")
                                        groups, single_tree = num_trees == 1)
   
   
-  #iter = 20
+  #iter = 50
   #sample_k1 = TRUE
   # Set up a progress bar
   pb <- utils::txtProgressBar(
@@ -141,6 +141,11 @@ than the total number of iterations")
   for (i in 1:iter) {
     utils::setTxtProgressBar(pb, i)
     
+    if(i == 1){
+      prev_S = 1e10
+    } else {
+    prev_S <- sum((y_scale - predictions_mu_j)^2)
+    }
     # If at the right place store everything
     if ((i > burn) & ((i %% thin) == 0)) {
       curr <- (i - burn) / thin
@@ -217,10 +222,13 @@ than the total number of iterations")
       if ((i > burn) & ((i %% thin) == 0)) {
         full_cond_store[curr, j] <- l_old
       }
-      if (a > stats::runif(1)) {
+      acc <- a > stats::runif(1)
+      if (acc) {
         # Make changes if accept
         curr_trees <- new_trees
-      } # End of accept if statement
+      } 
+      
+      # End of accept if statement
       
       # Update mu whether tree accepted or not
       # curr_trees[[j]] <- simulate_mu_hebart(
@@ -232,7 +240,8 @@ than the total number of iterations")
         tree      = curr_trees[[j]],
         R = current_partial_residuals,
         tau, k_1, k_2, groups, 
-        type = type
+        type = type, 
+        acc
       )
       
       # Finally update the group means:
@@ -249,14 +258,42 @@ than the total number of iterations")
     } # End loop through trees
     
     # Calculate full set of predictions
-    predictions <- get_group_predictions(curr_trees, X, groups, single_tree = num_trees == 1)
-    # predictions <- get_predictions(curr_trees, X, single_tree = num_trees == 1)
-    S <- sum((y_scale - predictions)^2)
+    predictions_mu_j <- get_group_predictions(curr_trees, X, groups, single_tree = num_trees == 1)
+    predictions_mu   <- get_predictions(curr_trees, X,single_tree = num_trees == 1)
+    
+    df_pred <- data.frame(predictions_mu_j, predictions_mu) |> 
+      dplyr::group_by_all() |> 
+      dplyr::slice(1) 
+    
+    res_mu_j <- df_pred |> 
+      dplyr::ungroup() |> 
+      dplyr::summarise(s_muj = sum((predictions_mu_j - predictions_mu)^2)) |> 
+      dplyr::pull(s_muj)
+
+    res_mu <- df_pred |> 
+      dplyr::group_by(predictions_mu) |> 
+      dplyr::slice(1) |> 
+      dplyr::ungroup() |> 
+      dplyr::summarise(s_mu = sum(predictions_mu^2)) |> 
+      dplyr::pull(s_mu)
+    
+    # Y residual 
+    S <- sum((y_scale - predictions_mu_j)^2)
+    # print(S)
     # print(S)
     # Update tau and sigma
-    tau <- update_tau(S, nu, lambda,
-                      n = length(y_scale)
+    tau <- update_tau(S = S, 
+                      res_mu_j = res_mu_j, res_mu = res_mu, 
+                      nu = nu, lambda = lambda,
+                      n = length(y_scale),
+                      groups = groups, 
+                      k_1 = k_1, k_2 = k_2 
     )
+    # if it goes somewhere bad, restart it 
+    if(prev_S < S/1.5){
+      tau <- inits$tau
+      k_1 <- priors$k_1
+    }
     sigma <- 1 / sqrt(tau)
     
     # Sample k1

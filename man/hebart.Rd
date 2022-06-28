@@ -8,12 +8,12 @@ hebart(
   formula,
   data,
   group_variable,
-  num_trees = 1,
+  num_trees = 2,
   control = list(node_min_size = 5),
-  priors = list(alpha = 0.95, beta = 2, k_1 = 1e-10, k_2 = 0.2, nu = 3, lambda = 0.1),
+  priors = list(alpha = 0.95, beta = 2, k_1 = 1, k_2 = 0.2, nu = 3, lambda = 0.1),
   inits = list(tau = 1),
   MCMC = list(iter = 500, burn = 150, thin = 1),
-  k_1_pars = list(sample_k1 = TRUE, min_u = 0, max_u = 15, k1_prior = TRUE)
+  k_1_pars = list(sample_k1 = TRUE, min_u = 0, max_u = 5, k1_prior = TRUE)
 )
 }
 \arguments{

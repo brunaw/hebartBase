@@ -180,7 +180,8 @@ simulate_mu_hebart <- function(tree, R, tau, k_1, k_2, num_groups) {
   return(tree)
 }
 
-simulate_mu_hebart_2 <- function(tree, R, tau, k_1, k_2, groups, type) {
+simulate_mu_hebart_2 <- function(tree, R, tau, k_1, k_2, groups, type,
+                                 acc) {
   
   # psi  <- k_1 * M %*% t(M) + diag(n)
   # mean <- (rep(1, n) %*% solve(psi, R)) / (rep(1, n) %*% solve(psi, rep(1, n)) + (1/k_2))
@@ -200,6 +201,13 @@ simulate_mu_hebart_2 <- function(tree, R, tau, k_1, k_2, groups, type) {
   
   # mu_js 
   mu_js <- tree$tree_matrix[, c("terminal", sort(group_col_names))]
+  if(!"matrix" %in% class(mu_js)){
+    mu_js <- matrix(mu_js, byrow = FALSE, ncol = length(c("terminal", sort(group_col_names))))
+    colnames(mu_js) <- c("terminal", sort(group_col_names))
+  }
+  
+  #if(nrow(mu_js) == 1){type = "same"}
+  
   # existing node indices:
   if(type == "grow"){
     if(nrow(mu_js) > 1){
@@ -218,7 +226,7 @@ simulate_mu_hebart_2 <- function(tree, R, tau, k_1, k_2, groups, type) {
       curr_sum_mu   <- rowSums(mu_js[, sort(group_col_names)])              
       
     } else{
-      curr_sum_mu <- sum(stats::na.omit(mu_js))
+      curr_sum_mu <- sum(stats::na.omit(mu_js[, sort(group_col_names)]))
       correct_inds <- 2
     }
   } else if(type == "prune"){
@@ -226,25 +234,16 @@ simulate_mu_hebart_2 <- function(tree, R, tau, k_1, k_2, groups, type) {
       # For prune, 
       inds            <- unique(tree$node_indices)
       mu_js           <- cbind(mu_js, node_index = 1:max(inds))
-      #non_na_mu_js    <- stats::na.omit(mu_js)
-      # Nodes that were not changed: 
-      #which_ind       <- non_na_mu_js[, "node_index"]
-      # Nodes that were created 
-      #which_to_update <- inds[which(!inds %in% which_ind)]
-      #which_to_keep   <- which_ind[which(which_ind %in% inds)]
-      
-      #mu_js           <- mu_js[mu_js[, "node_index"] %in% which_to_keep, ]
-      mu_js           <- stats::na.omit(mu_js)
-      correct_inds  <- mu_js[, "node_index"]
-      curr_sum_mu   <- rowSums(mu_js[, sort(group_col_names)])              
+      mu_js            <- stats::na.omit(mu_js)
+      correct_inds     <- mu_js[, "node_index"]
+      curr_sum_mu      <- rowSums(mu_js[, sort(group_col_names)])              
       
     } else {
-      curr_sum_mu <- sum(stats::na.omit(mu_js))
-      correct_inds <- 2
+      curr_sum_mu <- sum(stats::na.omit(mu_js[, sort(group_col_names)]))
+      correct_inds <- 1
     }
   }
-  
-  
+
   mu <- stats::rnorm(length(nj),
                      mean = (curr_sum_mu / k_1) / (num_groups / k_1 + 1 / k_2),
                      sd = sqrt(1 / (tau * (num_groups / k_1 + 1 / k_2)))
@@ -258,7 +257,12 @@ simulate_mu_hebart_2 <- function(tree, R, tau, k_1, k_2, groups, type) {
   
   # Put in just the ones that are useful
   #tree$tree_matrix[which_terminal, "mu"] <- mu
+  # a bug correction for when a grow was proposed but not accepted 
+  if(length(curr_sum_mu) == 1 & !acc){
+    correct_inds <- 1
+  }
   tree$tree_matrix[correct_inds, "mu"] <- mu
+
   
   return(tree)
 }
@@ -336,19 +340,32 @@ simulate_mu_groups_hebart <- function(tree, R, groups, tau, k_1, k_2) {
 #' @title Update tau
 #' @description Samples values from the posterior distribution of tau
 #' @param S The sum of squared residuals
-#' @param nu .
-#' @param lambda .
+#' @param res_mu_j The mu_j residuals
+#' @param res_mu The mu residuals
+#' @param nu The current value of nu
+#' @param lambda The current value of lambda
 #' @param n The number of observations
-#' 
+#' @param groups The grouping variable
+#' @param k_1 The current value of k1
+#' @param k_2 The current value of k2
 # Update tau --------------------------------------------------------------
-update_tau <- function(S, nu, lambda, n) {
+update_tau <- function(S, res_mu_j, res_mu, nu, lambda, n, groups, k_1, k_2) {
+  
+  num_groups      <- length(unique(groups))
+
+  # Simple version: 
+  # tau <- stats::rgamma(1,
+  #                      shape = (nu + n) / 2,
+  #                      rate = (S + nu * lambda) / 2
+  # )
+  
   # Update from maths in Github folder
   tau <- stats::rgamma(1,
-                       shape = (nu + n) / 2,
-                       rate = (S + nu * lambda) / 2
+                       shape = (nu + n + num_groups + 1) / 2,
+                       rate = (S + (nu * lambda) + res_mu_j/k_1 + res_mu/k_2) / 2
   )
-  # Alternative
-  # tau = rgamma(1, shape = (nu + n) / 2 - 1, scale = 2 / (S + nu * lambda))
+  #Alternative
+  #tau = rgamma(1, shape = (nu + n) / 2 - 1, scale = 2 / (S + nu * lambda))
   
   return(tau)
 }
