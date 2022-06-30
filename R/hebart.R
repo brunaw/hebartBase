@@ -44,7 +44,7 @@ hebart <- function(
     burn = 150, # Size of burn in
     thin = 1
   ), # Amount of thinning
-  k_1_pars = list(sample_k1 = TRUE, 
+  k_1_pars = list(sample_k1 = FALSE, 
                   min_u     = 0, 
                   max_u     = 5, 
                   k1_prior  = TRUE)
@@ -136,6 +136,7 @@ than the total number of iterations")
     title = "Running rBART..."
   )
   
+  #i = 5
   
   # Start the iterations loop
   for (i in 1:iter) {
@@ -218,11 +219,14 @@ than the total number of iterations")
       
       # If accepting a new tree update all relevant parts
       a <- exp(l_new - l_old)
+      if(is.nan(a)){ a <- 0}
       
       if ((i > burn) & ((i %% thin) == 0)) {
         full_cond_store[curr, j] <- l_old
       }
+      
       acc <- a > stats::runif(1)
+      
       if (acc) {
         # Make changes if accept
         curr_trees <- new_trees
@@ -241,7 +245,7 @@ than the total number of iterations")
         R = current_partial_residuals,
         tau, k_1, k_2, groups, 
         type = type, 
-        acc
+        acc = acc[1]
       )
       
       # Finally update the group means:
@@ -279,21 +283,23 @@ than the total number of iterations")
     
     # Y residual 
     S <- sum((y_scale - predictions_mu_j)^2)
-    # print(S)
-    # print(S)
+  
     # Update tau and sigma
-    tau <- update_tau(S = S, 
+    tau <- hebartBase::update_tau(S = S, 
                       res_mu_j = res_mu_j, res_mu = res_mu, 
                       nu = nu, lambda = lambda,
                       n = length(y_scale),
                       groups = groups, 
                       k_1 = k_1, k_2 = k_2 
     )
+    
     # if it goes somewhere bad, restart it 
-    if(prev_S < S/1.5){
-      tau <- inits$tau
-      k_1 <- priors$k_1
-    }
+    # if(prev_S < S/1.2){
+    #   tau <- inits$tau
+    #   k_1 <- priors$k_1
+    # }
+    
+    
     sigma <- 1 / sqrt(tau)
     
     # Sample k1

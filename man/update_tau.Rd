@@ -4,16 +4,26 @@
 \alias{update_tau}
 \title{Update tau}
 \usage{
-update_tau(S, nu, lambda, n)
+update_tau(S, res_mu_j, res_mu, nu, lambda, n, groups, k_1, k_2)
 }
 \arguments{
 \item{S}{The sum of squared residuals}
 
-\item{nu}{.}
+\item{res_mu_j}{The mu_j residuals}
 
-\item{lambda}{.}
+\item{res_mu}{The mu residuals}
+
+\item{nu}{The current value of nu}
+
+\item{lambda}{The current value of lambda}
 
 \item{n}{The number of observations}
+
+\item{groups}{The grouping variable}
+
+\item{k_1}{The current value of k1}
+
+\item{k_2}{The current value of k2}
 }
 \description{
 Samples values from the posterior distribution of tau

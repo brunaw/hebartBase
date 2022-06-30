@@ -13,7 +13,7 @@ hebart(
   priors = list(alpha = 0.95, beta = 2, k_1 = 1, k_2 = 0.2, nu = 3, lambda = 0.1),
   inits = list(tau = 1),
   MCMC = list(iter = 500, burn = 150, thin = 1),
-  k_1_pars = list(sample_k1 = TRUE, min_u = 0, max_u = 5, k1_prior = TRUE)
+  k_1_pars = list(sample_k1 = FALSE, min_u = 0, max_u = 5, k1_prior = TRUE)
 )
 }
 \arguments{

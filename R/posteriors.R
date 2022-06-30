@@ -180,6 +180,20 @@ simulate_mu_hebart <- function(tree, R, tau, k_1, k_2, num_groups) {
   return(tree)
 }
 
+#' @name simulate_mu_hebart_2
+#' @author Bruna Wundervald, \email{brunadaviesw@gmail.com}, Andrew Parnell
+#' @export
+#' @title Simulate mu
+#' @description Simulates mu for each terminal node
+#' @param tree The current tree
+#' @param R The corresponding residuals for the tree
+#' @param tau The  current value of tau
+#' @param k_1 The  current value of k_1
+#' @param k_2 The  current value of k_2
+#' @param groups The groups 
+#' @param type Action type
+#' @param acc Acceptance or not of proposal
+#' 
 simulate_mu_hebart_2 <- function(tree, R, tau, k_1, k_2, groups, type,
                                  acc) {
   
@@ -205,25 +219,32 @@ simulate_mu_hebart_2 <- function(tree, R, tau, k_1, k_2, groups, type,
     mu_js <- matrix(mu_js, byrow = FALSE, ncol = length(c("terminal", sort(group_col_names))))
     colnames(mu_js) <- c("terminal", sort(group_col_names))
   }
+  n_init <- nrow(stats::na.omit(mu_js))
   
   #if(nrow(mu_js) == 1){type = "same"}
   
+  # dealing with the first iteration
+  # if(nrow(tree$tree_matrix)==3){
+  #   curr_sum_mu <- c(0, 0)
+  #   correct_inds <- c(1, 2)
+  # } else {
   # existing node indices:
   if(type == "grow"){
     if(nrow(mu_js) > 1){
-      inds           <- unique(tree$node_indices)
-      mu_js          <- cbind(mu_js, node_index = 1:max(inds))
-      non_na_mu_js   <- stats::na.omit(mu_js)
-      which_ind      <- non_na_mu_js[, "node_index"]
-      which_to_dup   <- which_ind[which(!which_ind %in% inds)]
-      non_dup        <- which_ind[which(which_ind %in% inds)]
-      new_inds       <- inds[which(!inds %in% non_dup)]
+      inds            <- unique(tree$node_indices)
+      mu_js           <- cbind(mu_js, node_index = 1:max(inds))
+      non_na_mu_js    <- stats::na.omit(mu_js)
+      which_ind       <- non_na_mu_js[, "node_index"]
+      which_to_dup    <- which_ind[which(!which_ind %in% inds)]
+      non_dup         <- which_ind[which(which_ind %in% inds)]
+      new_inds        <- inds[which(!inds %in% non_dup)]
       
-      mu_js         <- rbind(mu_js, mu_js[which_to_dup, ])
-      mu_js         <- stats::na.omit(mu_js)
+      mu_js          <- rbind(mu_js, mu_js[which_to_dup, ])
+      mu_js          <- stats::na.omit(mu_js)
       mu_js[mu_js[, "node_index"] == which_to_dup, "node_index"] <- new_inds
-      correct_inds  <- mu_js[, "node_index"]
-      curr_sum_mu   <- rowSums(mu_js[, sort(group_col_names)])              
+      correct_inds   <- mu_js[, "node_index"]
+      curr_sum_mu    <- rowSums(mu_js[, sort(group_col_names)])   
+    
       
     } else{
       curr_sum_mu <- sum(stats::na.omit(mu_js[, sort(group_col_names)]))
@@ -232,8 +253,8 @@ simulate_mu_hebart_2 <- function(tree, R, tau, k_1, k_2, groups, type,
   } else if(type == "prune"){
     if(nrow(mu_js) > 1){
       # For prune, 
-      inds            <- unique(tree$node_indices)
-      mu_js           <- cbind(mu_js, node_index = 1:max(inds))
+      inds             <- unique(tree$node_indices)
+      mu_js            <- cbind(mu_js, node_index = 1:max(inds))
       mu_js            <- stats::na.omit(mu_js)
       correct_inds     <- mu_js[, "node_index"]
       curr_sum_mu      <- rowSums(mu_js[, sort(group_col_names)])              
@@ -242,6 +263,12 @@ simulate_mu_hebart_2 <- function(tree, R, tau, k_1, k_2, groups, type,
       curr_sum_mu <- sum(stats::na.omit(mu_js[, sort(group_col_names)]))
       correct_inds <- 1
     }
+  }
+  #}
+  
+  if(nrow(tree$tree_matrix)==3 & n_init ==1){
+    curr_sum_mu <- c(0, 0)
+    correct_inds <- c(3, 2)
   }
 
   mu <- stats::rnorm(length(nj),
@@ -258,6 +285,7 @@ simulate_mu_hebart_2 <- function(tree, R, tau, k_1, k_2, groups, type,
   # Put in just the ones that are useful
   #tree$tree_matrix[which_terminal, "mu"] <- mu
   # a bug correction for when a grow was proposed but not accepted 
+  if(is.na(acc)){ acc <- FALSE }
   if(length(curr_sum_mu) == 1 & !acc){
     correct_inds <- 1
   }
