@@ -265,28 +265,28 @@ than the total number of iterations")
     predictions_mu_j <- get_group_predictions(curr_trees, X, groups, single_tree = num_trees == 1)
     predictions_mu   <- get_predictions(curr_trees, X,single_tree = num_trees == 1)
     
-    df_pred <- data.frame(predictions_mu_j, predictions_mu) |> 
-      dplyr::group_by_all() |> 
-      dplyr::slice(1) 
-    
-    res_mu_j <- df_pred |> 
-      dplyr::ungroup() |> 
-      dplyr::summarise(s_muj = sum((predictions_mu_j - predictions_mu)^2)) |> 
-      dplyr::pull(s_muj)
-
-    res_mu <- df_pred |> 
-      dplyr::group_by(predictions_mu) |> 
-      dplyr::slice(1) |> 
-      dplyr::ungroup() |> 
-      dplyr::summarise(s_mu = sum(predictions_mu^2)) |> 
-      dplyr::pull(s_mu)
+    # df_pred <- data.frame(predictions_mu_j, predictions_mu) |> 
+    #   dplyr::group_by_all() |> 
+    #   dplyr::slice(1) 
+    # 
+    # res_mu_j <- df_pred |> 
+    #   dplyr::ungroup() |> 
+    #   dplyr::summarise(s_muj = sum((predictions_mu_j - predictions_mu)^2)) |> 
+    #   dplyr::pull(s_muj)
+    # 
+    # res_mu <- df_pred |> 
+    #   dplyr::group_by(predictions_mu) |> 
+    #   dplyr::slice(1) |> 
+    #   dplyr::ungroup() |> 
+    #   dplyr::summarise(s_mu = sum(predictions_mu^2)) |> 
+    #   dplyr::pull(s_mu)
     
     # Y residual 
     S <- sum((y_scale - predictions_mu_j)^2)
   
     # Update tau and sigma
-    tau <- hebartBase::update_tau(S = S, 
-                      res_mu_j = res_mu_j, res_mu = res_mu, 
+    tau <- hebartBase::update_tau_2(y = y,
+                                    M = M,
                       nu = nu, lambda = lambda,
                       n = length(y_scale),
                       groups = groups, 

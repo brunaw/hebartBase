@@ -398,6 +398,30 @@ update_tau <- function(S, res_mu_j, res_mu, nu, lambda, n, groups, k_1, k_2) {
   return(tau)
 }
 
+update_tau_2 <- function(y, M, nu, lambda, n, groups) {
+  
+  num_groups      <- length(unique(groups))
+  
+  W_1 <- (k_2 * matrix(1, nrow = n, ncol = n)) + (k_1 * M %*% t(M)) + diag(n)
+  S <- t(y) %*% solve(W_1, y)
+  
+  # Simple version: 
+  # tau <- stats::rgamma(1,
+  #                      shape = (nu + n) / 2,
+  #                      rate = (S + nu * lambda) / 2
+  # )
+  
+  # Update from maths in Github folder
+  tau <- stats::rgamma(1,
+                       shape = (nu + n) / 2,
+                       rate = (S + nu * lambda) / 2
+  )
+  #Alternative
+  #tau = rgamma(1, shape = (nu + n) / 2 - 1, scale = 2 / (S + nu * lambda))
+  
+  return(tau)
+}
+
 
 #' @name full_conditional_hebart
 #' @author Bruna Wundervald, \email{brunadaviesw@gmail.com}, Andrew Parnell
