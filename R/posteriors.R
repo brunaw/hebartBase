@@ -165,11 +165,17 @@ simulate_mu_hebart <- function(tree, R, tau, k_1, k_2, num_groups) {
   # Get sum of residuals in each terminal node
   sumR <- stats::aggregate(R, by = list(tree$node_indices), sum)[, 2]
   
-  # Now calculate mu values
+  
   mu <- stats::rnorm(length(nj),
-                     mean = (sumR / k_1) / (nj / k_1 + 1 / k_2),
-                     sd = sqrt(1 / (tau * (nj / k_1 + 1 / k_2)))
+              mean = (sumR / k_1) / (nj / k_1 + 1 / k_2),
+              sd = sqrt(1 / (tau * nj / k_1 + 1 / k_2))
   )
+  
+  # Now calculate mu values
+  # mu <- stats::rnorm(length(nj),
+  #                    mean = (sumR / k_1) / (nj / k_1 + 1 / k_2),
+  #                    sd = sqrt(1 / (tau * (nj / k_1 + 1 / k_2)))
+  # )
   
   # Wipe all the old mus out for other nodes
   tree$tree_matrix[, "mu"] <- NA
@@ -327,28 +333,38 @@ simulate_mu_groups_hebart <- function(tree, R, groups, tau, k_1, k_2) {
   # Get the group means in each terminal node
   # Doing this with loops but probably can be faster
   for (i in 1:length(nj)) {
+    # curr_R           <- R[tree$node_indices == which_terminal[i]]
+    # curr_groups      <- groups[tree$node_indices == which_terminal[i]]
+    # curr_group_sizes <- data.frame(groups = curr_groups) |> 
+    #   dplyr::count(groups)
+    # means            <- data.frame(curr_R = curr_R, 
+    #                                groups = curr_groups)
+    # # Correcting for missing groups in the node
+    # means            <- dplyr::group_by(means, groups) |>
+    #   # sum, not mean
+    #   dplyr::summarise(mean_curr_R = sum(curr_R)) |> 
+    #   dplyr::left_join(curr_group_sizes, by = "groups") |> 
+    #   dplyr::right_join(df_groups, by = "groups") 
+    # means <- stats::na.omit(means)
+    # group_R_means     <- means$mean_curr_R
+    # curr_mu           <- tree$tree_matrix[which_terminal[i], "mu"]
+    # curr_group_sizes  <- means$n
+    # curr_group_mu     <- stats::rnorm(
+    #   num_groups,
+    #   mean = (curr_mu / k_1 + group_R_means) / (curr_group_sizes + 1 / k_1),
+    #   sd = sqrt(1 / (tau * (curr_group_sizes + 1 / k_1)))
+    # )
+    
     curr_R           <- R[tree$node_indices == which_terminal[i]]
     curr_groups      <- groups[tree$node_indices == which_terminal[i]]
-    curr_group_sizes <- data.frame(groups = curr_groups) |> 
-      dplyr::count(groups)
-    means            <- data.frame(curr_R = curr_R, 
-                                   groups = curr_groups)
-    # Correcting for missing groups in the node
-    means            <- dplyr::group_by(means, groups) |>
-      # sum, not mean
-      dplyr::summarise(mean_curr_R = sum(curr_R)) |> 
-      dplyr::left_join(curr_group_sizes, by = "groups") |> 
-      dplyr::right_join(df_groups, by = "groups") 
-    means <- stats::na.omit(means)
-    group_R_means     <- means$mean_curr_R
-    curr_mu           <- tree$tree_matrix[which_terminal[i], "mu"]
-    curr_group_sizes  <- means$n
-    curr_group_mu     <- stats::rnorm(
-      num_groups,
-      mean = (curr_mu / k_1 + group_R_means) / (curr_group_sizes + 1 / k_1),
-      sd = sqrt(1 / (tau * (curr_group_sizes + 1 / k_1)))
+    curr_group_sizes <- table(curr_groups)
+    curr_group_sizes <- curr_group_sizes[curr_group_sizes>0]
+    group_R_means    <- stats::aggregate(curr_R, by = list(curr_groups), "sum")[, 2]
+    curr_mu          <- tree$tree_matrix[which_terminal[i], "mu"]
+    curr_group_mu    <- stats::rnorm(num_groups,
+                           mean = (curr_mu / k_1 + group_R_means) / (curr_group_sizes + 1 / k_1),
+                           sd = sqrt(1 / (curr_group_sizes + 1 / k_1))
     )
-    
     tree$tree_matrix[which_terminal[i], sort(group_col_names)] <- curr_group_mu
     
   }
@@ -382,16 +398,16 @@ update_tau <- function(S, res_mu_j, res_mu, nu, lambda, n, groups, k_1, k_2) {
   num_groups      <- length(unique(groups))
 
   # Simple version: 
-  # tau <- stats::rgamma(1,
-  #                      shape = (nu + n) / 2,
-  #                      rate = (S + nu * lambda) / 2
-  # )
+  tau <- stats::rgamma(1,
+                       shape = (nu + n) / 2,
+                       rate = (S + nu * lambda) / 2
+  )
   
   # Update from maths in Github folder
-  tau <- stats::rgamma(1,
-                       shape = (nu + n + num_groups + 1) / 2,
-                       rate = (S + (nu * lambda) + res_mu_j/k_1 + res_mu/k_2) / 2
-  )
+  # tau <- stats::rgamma(1,
+  #                      shape = (nu + n + num_groups + 1) / 2,
+  #                      rate = (S + (nu * lambda) + res_mu_j/k_1 + res_mu/k_2) / 2
+  # )
   #Alternative
   #tau = rgamma(1, shape = (nu + n) / 2 - 1, scale = 2 / (S + nu * lambda))
   

@@ -261,8 +261,8 @@ prune_tree <- function(X, y, curr_tree, groups) {
   } # End of bad node to prune while loop
   
   # Collapse the mu_js from the rows that will be deleted 
-  mu_js_to_collapse <- new_tree$tree_matrix[c(child_left, child_right), sort(group_col_names)]
-  mu_js_to_collapse <- colMeans(mu_js_to_collapse)
+  #mu_js_to_collapse <- new_tree$tree_matrix[c(child_left, child_right), sort(group_col_names)]
+  #mu_js_to_collapse <- colMeans(mu_js_to_collapse)
   
   # Delete these two rows from the tree matrix
   new_tree$tree_matrix <- new_tree$tree_matrix[-c(child_left, child_right), ,
@@ -278,7 +278,7 @@ prune_tree <- function(X, y, curr_tree, groups) {
   )] <- c(1, NA, NA, NA, NA)
   
   # Filling mu_js value
-  new_tree$tree_matrix[parent_pick, sort(group_col_names)] <- mu_js_to_collapse
+  # new_tree$tree_matrix[parent_pick, sort(group_col_names)] <- mu_js_to_collapse
   
   # If we're back to a stump no need to call fill_tree_details
   if (nrow(new_tree$tree_matrix) == 1) {

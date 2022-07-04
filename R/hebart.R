@@ -33,7 +33,7 @@ hebart <- function(
   priors = list(
     alpha = 0.95, # Prior control list
     beta = 2,
-    k_1 = 1,
+    k_1 = 0.01,
     k_2 = 0.2,
     nu = 3,
     lambda = 0.1
@@ -127,8 +127,6 @@ than the total number of iterations")
                                        groups, single_tree = num_trees == 1)
   
   
-  #iter = 50
-  #sample_k1 = TRUE
   # Set up a progress bar
   pb <- utils::txtProgressBar(
     min = 1, max = iter,
@@ -235,18 +233,18 @@ than the total number of iterations")
       # End of accept if statement
       
       # Update mu whether tree accepted or not
-      # curr_trees[[j]] <- simulate_mu_hebart(
-      #   tree = curr_trees[[j]],
-      #   R = current_partial_residuals,
-      #   tau, k_1, k_2, num_groups = num_groups
-      # )
-      curr_trees[[j]] <- simulate_mu_hebart_2(
-        tree      = curr_trees[[j]],
-        R = current_partial_residuals,
-        tau, k_1, k_2, groups, 
-        type = type, 
-        acc = acc[1]
+      curr_trees[[j]] <- simulate_mu_hebart(
+        curr_trees[[j]],
+        current_partial_residuals,
+        tau, k_1, k_2, num_groups
       )
+      # curr_trees[[j]] <- simulate_mu_hebart_2(
+      #   tree      = curr_trees[[j]],
+      #   R = current_partial_residuals,
+      #   tau, k_1, k_2, groups, 
+      #   type = type, 
+      #   acc = acc[1]
+      # )
       
       # Finally update the group means:
       curr_trees[[j]] <- simulate_mu_groups_hebart(
@@ -302,14 +300,14 @@ than the total number of iterations")
     
     sigma <- 1 / sqrt(tau)
     
-    # Sample k1
-    if(sample_k1){
-      # We can set these parameters more smartly
-      sampled_k1 <- update_k1(y, min_u, max_u, k_1, k_2, M, nu, lambda, prior = k1_prior)
-
-      samples_k1[i] <- k_1
-      if(sampled_k1 != k_1){ samples_k1[i] <- k_1 <- sampled_k1 }
-    }
+    # # Sample k1
+    # if(sample_k1){
+    #   # We can set these parameters more smartly
+    #   sampled_k1 <- update_k1(y, min_u, max_u, k_1, k_2, M, nu, lambda, prior = k1_prior)
+    # 
+    #   samples_k1[i] <- k_1
+    #   if(sampled_k1 != k_1){ samples_k1[i] <- k_1 <- sampled_k1 }
+    # }
     
     # Get the overall log likelihood
     log_lik <- sum(stats::dnorm(y_scale, mean = predictions, sd = sigma, log = TRUE))
