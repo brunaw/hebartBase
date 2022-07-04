@@ -307,13 +307,13 @@ than the total number of iterations")
     sigma <- 1 / sqrt(tau)
     
     # # Sample k1
-    # if(sample_k1){
-    #   # We can set these parameters more smartly
-    #   sampled_k1 <- update_k1(y, min_u, max_u, k_1, k_2, M, nu, lambda, prior = k1_prior)
-    # 
-    #   samples_k1[i] <- k_1
-    #   if(sampled_k1 != k_1){ samples_k1[i] <- k_1 <- sampled_k1 }
-    # }
+    if(sample_k1){
+      # We can set these parameters more smartly
+      sampled_k1 <- update_k1(y, min_u, max_u, k_1, k_2, M, nu, lambda, prior = k1_prior)
+
+      samples_k1[i] <- k_1
+      if(sampled_k1 != k_1){ samples_k1[i] <- k_1 <- sampled_k1 }
+    }
     
     # Get the overall log likelihood
     log_lik <- sum(stats::dnorm(y_scale, mean = predictions, sd = sigma, log = TRUE))

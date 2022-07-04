@@ -12,16 +12,18 @@ library(tidymodels)
 library(hebartBase)
 
 # Dataset split  ------------------------------------
-set.seed(2022)
-df_real     <- lme4::sleepstudy %>% set_names(c('y', 'X1', 'group'))
-df_real$y   <- c(scale(df_real$y))
-data_split  <- initial_split(df_real)
-train       <- training(data_split)
-test        <- testing(data_split)
-groups      <-  train$group
+set.seed(1)
+data <- sim_friedman(n = 500)
+test <- sim_friedman(n = 200)
+group_test <- sample(1:3, size = length(test$y), replace = TRUE)
+X <- data$X
+y <- scale(data$y)[, 1]
+group <- sample(1:3, size = length(y), replace = TRUE)
+train <- data.frame(y, X, group)
+
 # Model parameters -----------------------------------
 group_variable <-  "group"
-formula        <- y ~ X1
+formula        <- y ~ X1 + X2 + X3 + X4 + X5
 pars           <- list(
   alpha = 0.95, beta = 2, k_1 = 0.05,
   k_2 = 1, nu = 3, lambda = 0.1
@@ -40,16 +42,16 @@ hb_model <- hebart(
   num_trees      = 1,
   k_1_pars       = k1_pars)
 
-hb_model
 
-# Results are OK:
+pp <- predict_hebart(test$X, group_test, hb_model, type = "mean")
+sqrt(mean(pp - scale(test$y))^2) # 0.021
 # Formula:
-#   y ~ X1 
+#   y ~ X1 + X2 + X3 + X4 + X5 
 # 
 # Number of trees:         1 
-# Number of covariates:    1 
-# Training error (MSE):    0.6927752 
-# R Squared:               0.3072248 
+# Number of covariates:    5 
+# Training error (MSE):    0.3658532 
+# R Squared:               0.6341468 
 
 
 # when num_trees = 15
@@ -58,9 +60,11 @@ hb_model <- hebart(
   group_variable = "group",
   data           = train,
   control        = pars,
-  num_trees      = 15,
+  num_trees      = 5,
   k_1_pars       = k1_pars)
 hb_model
+pp <- predict_hebart(test$X, group_test, hb_model, type = "mean")
+sqrt(mean(pp - scale(test$y))^2) # 0.021
 # It breaks: 
 # Formula:
 # y ~ X1 
