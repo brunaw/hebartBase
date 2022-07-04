@@ -233,11 +233,11 @@ than the total number of iterations")
       # End of accept if statement
       
       # Update mu whether tree accepted or not
-      curr_trees[[j]] <- simulate_mu_hebart(
-        curr_trees[[j]],
-        current_partial_residuals,
-        tau, k_1, k_2, num_groups
-      )
+      # curr_trees[[j]] <- simulate_mu_hebart(
+      #   curr_trees[[j]],
+      #   current_partial_residuals,
+      #   tau, k_1, k_2, num_groups
+      # )
       # curr_trees[[j]] <- simulate_mu_hebart_2(
       #   tree      = curr_trees[[j]],
       #   R = current_partial_residuals,
@@ -246,6 +246,12 @@ than the total number of iterations")
       #   acc = acc[1]
       # )
       
+      curr_trees[[j]] <- simulate_mu_hebart_3(
+        tree      = curr_trees[[j]],
+        R = current_partial_residuals,
+        tau, k_1, k_2, groups
+      )
+
       # Finally update the group means:
       curr_trees[[j]] <- simulate_mu_groups_hebart(
         tree = curr_trees[[j]],

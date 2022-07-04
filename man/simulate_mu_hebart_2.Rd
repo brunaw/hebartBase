@@ -2,9 +2,12 @@
 % Please edit documentation in R/posteriors.R
 \name{simulate_mu_hebart_2}
 \alias{simulate_mu_hebart_2}
+\alias{simulate_mu_hebart_3}
 \title{Simulate mu}
 \usage{
 simulate_mu_hebart_2(tree, R, tau, k_1, k_2, groups, type, acc)
+
+simulate_mu_hebart_3(tree, R, tau, k_1, k_2, groups, type, acc)
 }
 \arguments{
 \item{tree}{The current tree}
@@ -25,7 +28,11 @@ simulate_mu_hebart_2(tree, R, tau, k_1, k_2, groups, type, acc)
 }
 \description{
 Simulates mu for each terminal node
+
+Simulates mu for each terminal node
 }
 \author{
+Bruna Wundervald, \email{brunadaviesw@gmail.com}, Andrew Parnell
+
 Bruna Wundervald, \email{brunadaviesw@gmail.com}, Andrew Parnell
 }

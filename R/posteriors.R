@@ -301,6 +301,69 @@ simulate_mu_hebart_2 <- function(tree, R, tau, k_1, k_2, groups, type,
   return(tree)
 }
 
+#' @name simulate_mu_hebart_2
+#' @author Bruna Wundervald, \email{brunadaviesw@gmail.com}, Andrew Parnell
+#' @export
+#' @title Simulate mu
+#' @description Simulates mu for each terminal node
+#' @param tree The current tree
+#' @param R The corresponding residuals for the tree
+#' @param tau The  current value of tau
+#' @param k_1 The  current value of k_1
+#' @param k_2 The  current value of k_2
+#' @param groups The groups 
+#' @param type Action type
+#' @param acc Acceptance or not of proposal
+#' 
+simulate_mu_hebart_3 <- function(tree, R, tau, k_1, k_2, groups, type,
+                                 acc) {
+  
+  # psi  <- k_1 * M %*% t(M) + diag(n)
+  # mean <- (rep(1, n) %*% solve(psi, R)) / (rep(1, n) %*% solve(psi, rep(1, n)) + (1/k_2))
+  # var  <- 1/((rep(1, n) %*% solve(psi, rep(1, n)) + (1/k_2))*tau)
+  # Simulate mu values for a given tree
+  
+  # First find which rows are terminal nodes
+  which_terminal <- which(tree$tree_matrix[, "terminal"] == 1)
+  
+  # Get node sizes for each terminal node
+  nj <- tree$tree_matrix[which_terminal, "node_size"]
+  
+  group_names     <- unique(groups)
+  num_groups      <- length(unique(groups))
+  group_col_names <- paste0("mu", group_names)
+  #df_groups       <- data.frame(groups = group_names)
+  
+  curr_mus <- curr_var <- c()
+  for(i in 1:length(nj)){
+    n   <-  nj[i]
+    node_groups <- groups[tree$node_indices == which_terminal[i]]
+    node_R      <- R[tree$node_indices == which_terminal[i]]
+    M_node <- stats::model.matrix(~ factor(node_groups) - 1)
+    PSI <- (k_1 * M_node %*% t(M_node)) + diag(n)
+    curr_mus[i] <- rep(1, n) %*% solve(PSI, node_R) / (rep(1, n) %*% solve(PSI, rep(1, n)) + 1/k_2)
+    curr_var[i] <- tau * (rep(1, n) %*% solve(PSI, rep(1, n)) + 1/k_2)
+    }
+  
+  
+  
+  #mu_js <- tree$tree_matrix[, c("terminal", sort(group_col_names))]
+  
+  mu <- stats::rnorm(length(nj),
+                     mean = curr_mus,
+                     sd = sqrt(1 / curr_var)
+  )
+  
+  # Get sum of residuals in each terminal node
+  #sumR <- stats::aggregate(R, by = list(tree$node_indices), sum)[, 2]
+  
+  # Wipe all the old mus out for other nodes
+  tree$tree_matrix[, "mu"] <- NA
+  tree$tree_matrix[which_terminal, "mu"] <- mu
+  
+  return(tree)
+}
+
 
 #' @name simulate_mu_groups_hebart
 #' @author Bruna Wundervald, \email{brunadaviesw@gmail.com}, Andrew Parnell
