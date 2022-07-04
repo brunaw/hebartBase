@@ -461,16 +461,16 @@ update_tau <- function(S, res_mu_j, res_mu, nu, lambda, n, groups, k_1, k_2) {
   num_groups      <- length(unique(groups))
 
   # Simple version: 
-  tau <- stats::rgamma(1,
-                       shape = (nu + n) / 2,
-                       rate = (S + nu * lambda) / 2
-  )
+  # tau <- stats::rgamma(1,
+  #                      shape = (nu + n) / 2,
+  #                      rate = (S + nu * lambda) / 2
+  # )
   
   # Update from maths in Github folder
-  # tau <- stats::rgamma(1,
-  #                      shape = (nu + n + num_groups + 1) / 2,
-  #                      rate = (S + (nu * lambda) + res_mu_j/k_1 + res_mu/k_2) / 2
-  # )
+  tau <- stats::rgamma(1,
+                       shape = (nu + n + num_groups + 1) / 2,
+                       rate = (S + (nu * lambda) + res_mu_j/k_1 + res_mu/k_2) / 2
+  )
   #Alternative
   #tau = rgamma(1, shape = (nu + n) / 2 - 1, scale = 2 / (S + nu * lambda))
   

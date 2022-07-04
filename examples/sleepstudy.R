@@ -23,7 +23,7 @@ groups      <-  train$group
 group_variable <-  "group"
 formula        <- y ~ X1
 pars           <- list(
-  alpha = 0.95, beta = 2, k_1 = 0.1,
+  alpha = 0.95, beta = 2, k_1 = 0.05,
   k_2 = 1, nu = 3, lambda = 0.1
 )
 
@@ -101,16 +101,18 @@ hb_model <- hebart(
   group_variable = "group",
   data           = train,
   control        = pars,
-  num_trees      = 5,
+  num_trees      = 15,
   k_1_pars       = k1_pars)
 
-
-# It breaks: 
+hb_model
+# ------------------------------------------- #
+# HEBART result
+# ------------------------------------------- #
 # Formula:
 #   y ~ X1 
 # 
-# Number of trees:         5 
+# Number of trees:         15 
 # Number of covariates:    1 
-# Training error (MSE):    30237.64 
-# R Squared:               -30236.64 
+# Training error (MSE):    0.4217759 
+# R Squared:               0.5782241
 #----------------------------------------------------
