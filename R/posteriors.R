@@ -398,7 +398,21 @@ update_tau <- function(S, res_mu_j, res_mu, nu, lambda, n, groups, k_1, k_2) {
   return(tau)
 }
 
-update_tau_2 <- function(y, M, nu, lambda, n, groups) {
+#' @name update_tau_2
+#' @author Bruna Wundervald, \email{brunadaviesw@gmail.com}, Andrew Parnell
+#' @export
+#' @title Update tau (different version)
+#' @description Samples values from the posterior distribution of tau
+#' @param y The response variable
+#' @param M the binary grouping matrix
+#' @param nu The current value of nu
+#' @param lambda The current value of lambda
+#' @param n The number of observations
+#' @param groups The grouping variable
+#' @param k_1 The current value of k1
+#' @param k_2 The current value of k2
+
+update_tau_2 <- function(y, M, nu, lambda, n, groups, k_1, k_2) {
   
   num_groups      <- length(unique(groups))
   

@@ -1,10 +1,7 @@
-library(hebart)
-packageVersion("hebart")
-
+library(hebartBase)
 library(magrittr)
 library(ggplot2)
 library(tidymodels)
-library(hebart)
 library(lme4)
 
 # Dataset split  ------------------------------------
@@ -24,21 +21,23 @@ pars           <- list(
 
 # Running the model ----------------------------------
 hb_model <- hebart(formula,
-                   dataset   = train,
-                   iter      = 500, burn_in = 150, 
-                   num.trees = 50, group_variable, pars,
-                   min_u     = 0, max_u = 20, scale = FALSE)
+                   data = train,
+                   group_variable = group_variable,
+                   num_trees = 5,
+                   MCMC = list(iter = 500, burn = 150, thin = 1), 
+                   k_1_pars = list(sample_k1 = FALSE, min_u = 0, max_u = 20,
+                                   k1_prior = TRUE))
 hb_model
 
-Hebart result
------------------------------------
-  Formula:
-  y ~ X1 
-
-Number of trees:         50 
-Number of covariates:    1 
-Prediction error (MSE):  0.150179 
-R squared:               0.8402177 
+# Hebart result
+# -----------------------------------
+#   Formula:
+#   y ~ X1 
+# 
+# Number of trees:         50 
+# Number of covariates:    1 
+# Prediction error (MSE):  0.150179 
+# R squared:               0.8402177 
 
 
 # Making predictions ----------------------------------

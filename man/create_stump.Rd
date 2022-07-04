@@ -41,6 +41,4 @@ A function that returns a tree stump (initial tree) given
 }
 \author{
 Bruna Wundervald, \email{brunadaviesw@gmail.com}, Andrew Parnell
-
-Bruna Wundervald, \email{brunadaviesw@gmail.com}, Andrew Parnell
 }
