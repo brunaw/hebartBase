@@ -14,7 +14,9 @@ library(hebartBase)
 # Dataset split  ------------------------------------
 set.seed(2022)
 df_real     <- lme4::sleepstudy %>% set_names(c('y', 'X1', 'group'))
+table(df_real$group)
 df_real$y   <- c(scale(df_real$y))
+df_real$X1 <- df_real$X1 + rnorm(nrow(df_real))
 data_split  <- initial_split(df_real)
 train       <- training(data_split)
 test        <- testing(data_split)
@@ -32,16 +34,17 @@ k1_pars        <-  list(sample_k1 = FALSE)
 
 # Running the model ----------------------------------
 # when num_trees = 1
+train$group <- as.numeric(train$group)
 hb_model <- hebart(
   formula,
   group_variable = "group",
   data           = train,
   control        = pars,
-  num_trees      = 1,
+  num_trees      = 5,
   k_1_pars       = k1_pars)
 
 hb_model
-
+hebartBase::grow_tree
 # Results are OK:
 # Formula:
 #   y ~ X1 

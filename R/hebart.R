@@ -476,45 +476,45 @@
 # } # End main function
 
 hebart <- function(
-    formula,
-    data,
-    group_variable, 
-   # X is the feature matrix, y is the target,
-   #groups, # groups is the group number of each obs
-   num_trees = 2, # Number of trees
-   control = list(node_min_size = 5), # Size of smallest nodes
-   priors = list(
-     alpha = 0.95, # Prior control list
-     beta = 2,
-     k_1 = 1e-10,
-     k_2 = 0.2,
-     nu = 3,
-     lambda = 0.1
-   ),
-   inits = list(tau = 1), # Initial values list
-   MCMC = list(
-     iter = 250, # Number of iterations
-     burn = 50, # Size of burn in
-     thin = 1
-   ), # Amount of thinning
-     k_1_pars = list(sample_k1 = FALSE,
-                     min_u     = 0,
-                     max_u     = 5,
-                     k1_prior  = TRUE)
+  formula,
+  data,
+  group_variable, 
+  # X is the feature matrix, y is the target,
+  #groups, # groups is the group number of each obs
+  num_trees = 2, # Number of trees
+  control = list(node_min_size = 5), # Size of smallest nodes
+  priors = list(
+    alpha = 0.95, # Prior control list
+    beta = 2,
+    k_1 = 1e-10,
+    k_2 = 0.2,
+    nu = 3,
+    lambda = 0.1
+  ),
+  inits = list(tau = 1), # Initial values list
+  MCMC = list(
+    iter = 250, # Number of iterations
+    burn = 50, # Size of burn in
+    thin = 1
+  ), # Amount of thinning
+  k_1_pars = list(sample_k1 = FALSE,
+                  min_u     = 0,
+                  max_u     = 5,
+                  k1_prior  = TRUE)
 ) {
   
   #   # Handling formula interface
-    formula_int <- stats::as.formula(paste(c(formula), "- 1"))
-    response_name <- all.vars(formula_int)[1]
-    names_x <- all.vars(formula_int[[3]])
-
-    data    <- dplyr::select(data, c(!!response_name, !!names_x, !!group_variable))
-    #data    <- dplyr::select(data, c(!!response_name, !!names_x, "group"))
-    names(data)[names(data) == group_variable] <- "group"
-    groups  <- data$group
-    mf      <- stats::model.frame(formula_int, data = data)
-    X       <- as.matrix(stats::model.matrix(formula_int, mf))
-    y       <- stats::model.extract(mf, "response")
+  formula_int <- stats::as.formula(paste(c(formula), "- 1"))
+  response_name <- all.vars(formula_int)[1]
+  names_x <- all.vars(formula_int[[3]])
+  
+  data    <- dplyr::select(data, c(!!response_name, !!names_x, !!group_variable))
+  #data    <- dplyr::select(data, c(!!response_name, !!names_x, "group"))
+  names(data)[names(data) == group_variable] <- "group"
+  groups  <- data$group
+  mf      <- stats::model.frame(formula_int, data = data)
+  X       <- as.matrix(stats::model.matrix(formula_int, mf))
+  y       <- stats::model.extract(mf, "response")
   
   # Extract control parameters
   node_min_size <- control$node_min_size
@@ -531,6 +531,13 @@ hebart <- function(
   tau <- inits$tau
   sigma <- 1 / sqrt(tau)
   log_lik <- 0
+  
+  
+  # k_1 sampling parameters
+  sample_k1 <- k_1_pars$sample_k1
+  min_u     <- k_1_pars$min_u
+  max_u     <- k_1_pars$max_u
+  k1_prior  <- k_1_pars$k1_prior
   
   # Extract MCMC details
   iter <- MCMC$iter # Number of iterations
@@ -553,8 +560,8 @@ hebart <- function(
   n <- length(y_scale)
   
   # Get the group matrix M
-  M <- stats::model.matrix(~ factor(group) - 1)
-  group_sizes <- table(group)
+  M <- stats::model.matrix(~ factor(groups) - 1)
+  group_sizes <- table(groups)
   num_groups <- length(group_sizes)
   
   # Create a list of trees for the initial stump
@@ -612,6 +619,7 @@ hebart <- function(
       
       # Get a new tree!
       new_trees <- curr_trees
+      
       new_trees[[j]] <- update_tree(
         y = y_scale,
         X = X,
@@ -623,8 +631,8 @@ hebart <- function(
       
       # Calculate the complete conditional and acceptance probability
       l_new <- tree_full_conditional_hebart(
-        new_trees[[j]],
-        current_partial_residuals,
+        tree = new_trees[[j]],
+        R = current_partial_residuals,
         k_1,
         k_2,
         M,
@@ -686,17 +694,17 @@ hebart <- function(
     # Update tau and sigma
     tau <- update_tau(y, M, nu, lambda, groups, k_1, k_2)
     sigma <- 1 / sqrt(tau)
-  
     
-      #   if(sample_k1){
-      #     # We can set these parameters more smartly
-      #     sampled_k1 <- update_k1(y, min_u, max_u, k_1, k_2, M,
-      #  nu, lambda, prior = k1_prior)
-      #
-      #     samples_k1[i] <- k_1
-      #     if(sampled_k1 != k_1){ samples_k1[i] <- k_1 <- sampled_k1 }
-      #   }
-
+    
+    #   if(sample_k1){
+    #     # We can set these parameters more smartly
+    #     sampled_k1 <- update_k1(y, min_u, max_u, k_1, k_2, M,
+    #  nu, lambda, prior = k1_prior)
+    #
+    #     samples_k1[i] <- k_1
+    #     if(sampled_k1 != k_1){ samples_k1[i] <- k_1 <- sampled_k1 }
+    #   }
+    
     # Get the overall log likelihood
     log_lik <- sum(stats::dnorm(y_scale, mean = predictions, sd = sigma, log = TRUE))
   } # End iterations loop
@@ -718,21 +726,21 @@ hebart <- function(
     num_trees = num_trees
   )
   
-    # Saving the k_1 samples
-    if(sample_k1) result$samples_k1 <-  samples_k1
+  # Saving the k_1 samples
+  if(sample_k1) result$samples_k1 <-  samples_k1
   
-    # RMSE calculation
-    pred <- predict_hebart(X, groups, result, type = "mean")
-    mse                 <- mean((pred - y_scale)^2)
-    r.squared           <- 1 - mse / stats::var(y_scale)
-
-    result$mse           <- mse
-    result$r.squared     <- r.squared
-    result$num_variables <- length(names_x)
-
-    class(result) <- "hebart"
-
-
-    return(result = result)
+  # RMSE calculation
+  pred <- predict_hebart(X, groups, result, type = "mean")
+  mse                 <- mean((pred - y_scale)^2)
+  r.squared           <- 1 - mse / stats::var(y_scale)
+  
+  result$mse           <- mse
+  result$r.squared     <- r.squared
+  result$num_variables <- length(names_x)
+  
+  class(result) <- "hebart"
+  
+  
+  return(result = result)
   
 } # End main function

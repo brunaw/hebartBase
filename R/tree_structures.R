@@ -138,6 +138,7 @@ update_tree <- function(y, # Target variable
 
 grow_tree <- function(X, y, num_groups, curr_tree, node_min_size) {
   
+  
   # Set up holder for new tree
   new_tree <- curr_tree
   
@@ -153,12 +154,18 @@ grow_tree <- function(X, y, num_groups, curr_tree, node_min_size) {
     c(1, NA, NA, NA, NA, NA, rep(NA, num_groups + 1), NA), # Make sure they're both terminal
     c(1, NA, NA, NA, NA, NA, rep(NA, num_groups + 1), NA)
   )
-  
+  # print(terminal_node_size)
+  # print(terminal_nodes)
+
   # Choose a random terminal node to split
-  node_to_split <- sample(terminal_nodes, 1,
-                          prob = as.integer(terminal_node_size > node_min_size)
-  ) # Choose which node to split, set prob to zero for any nodes that are too small
-  
+  if(length(terminal_nodes) == 1){
+    node_to_split <- terminal_nodes
+  } else {
+  node_to_split <- sample(na.omit(terminal_nodes), 1)
+                          #prob = as.integer(terminal_node_size > node_min_size)
+  #
+  #) # Choose which node to split, set prob to zero for any nodes that are too small
+  }
   # Choose a split variable uniformly from all columns
   split_variable <- sample(1:ncol(X), 1)
   # Choose a split value from the range of the current node but stop it from choosing empty nodex
@@ -173,8 +180,13 @@ grow_tree <- function(X, y, num_groups, curr_tree, node_min_size) {
     new_tree$node_indices == node_to_split,
     split_variable
   ]))
-  split_value <- sample(available_values[-c(1, length(available_values))], 1)
   
+  if(length(available_values) < 3){
+    return(curr_tree)
+  }
+  if(length(available_values) > 2){
+  split_value <- sample(available_values[-c(1, length(available_values))], 1)
+  } 
   curr_parent <- new_tree$tree_matrix[node_to_split, "parent"] # Make sure to keep the current parent in there. Will be NA if at the root node
   new_tree$tree_matrix[node_to_split, 1:6] <- c(
     0, # Now not temrinal

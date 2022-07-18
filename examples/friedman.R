@@ -33,7 +33,7 @@ pars           <- list(
 k1_pars        <-  list(sample_k1 = FALSE)
 
 # Running the model ----------------------------------
-# when num_trees = 1
+# when num_trees = 30
 # hb_model <- hebart(
 #   formula,
 #   group_variable = "group",
@@ -42,7 +42,7 @@ k1_pars        <-  list(sample_k1 = FALSE)
 #   num_trees      = 5,
 #   k_1_pars       = k1_pars)
 
-HEBART_out <- hebart(formula,
+hb_model <- hebart(formula,
                      data           = train,
                      group_variable = "group", 
                      num_trees = 30,
@@ -54,48 +54,36 @@ HEBART_out <- hebart(formula,
                        nu = 3,
                        lambda = 0.1
                      ))
-HEBART_out
 # Look at the output
-n_saved <- length(HEBART_out$sigma)
-qplot(1:n_saved, HEBART_out$sigma, xlab = "Iteration (thinned)", ylab = "Residual\nsd") + theme_minimal() + theme(axis.title.y = element_text(angle = 0, vjust = 1, hjust = 0))
-y_hat_HEBART <- apply(HEBART_out$y_hat, 2, "mean")
+n_saved <- length(hb_model$sigma)
+qplot(1:n_saved, hb_model$sigma, xlab = "Iteration (thinned)", ylab = "Residual\nsd") + theme_minimal() + theme(axis.title.y = element_text(angle = 0, vjust = 1, hjust = 0))
+y_hat_HEBART <- apply(hb_model$y_hat, 2, "mean")
 qplot(y, y_hat_HEBART) + geom_abline()
 cor(y, y_hat_HEBART)
-
-
 
 pp <- predict_hebart(test$X, group_test, hb_model, type = "mean")
 sqrt(mean(pp - scale(test$y))^2) # 0.021
 cor(pp, scale(test$y)) # 0.021
 hb_model$sigma 
 qplot(test$y, pp)
-# Formula:
-#   y ~ X1 + X2 + X3 + X4 + X5 
-# 
-# Number of trees:         1 
-# Number of covariates:    5 
-# Training error (MSE):    0.3658532 
-# R Squared:               0.6341468 
 
-
-# when num_trees = 15
-hb_model <- hebart(
-  formula,
-  group_variable = "group",
-  data           = train,
-  control        = pars,
-  num_trees      = 5,
-  k_1_pars       = k1_pars)
-hb_model
+hb_model <- hebart(formula,
+                   data           = train,
+                   group_variable = "group", 
+                   num_trees = 5,
+                   priors = list(
+                     alpha = 0.95, # Prior control list
+                     beta = 2,
+                     k_1 = 1e-10,
+                     k_2 = 0.2,
+                     nu = 3,
+                     lambda = 0.1
+                   ))
 pp <- predict_hebart(test$X, group_test, hb_model, type = "mean")
-sqrt(mean(pp - scale(test$y))^2) # 0.02792329
-# Formula:
-#   y ~ X1 + X2 + X3 + X4 + X5 
-# 
-# Number of trees:         5 
-# Number of covariates:    5 
-# Training error (MSE):    0.18127 
-# R Squared:               0.81873 
+sqrt(mean(pp - scale(test$y))^2) # 0.021
+cor(pp, scale(test$y)) # 0.021
+hb_model$sigma 
+qplot(test$y, pp)
 #----------------------------------------------------
 # When we change k_1 --------------------------------
 k1_pars        <-  list(sample_k1 = TRUE,
