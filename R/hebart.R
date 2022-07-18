@@ -496,7 +496,11 @@ hebart <- function(
      iter = 250, # Number of iterations
      burn = 50, # Size of burn in
      thin = 1
-   ) # Amount of thinning
+   ), # Amount of thinning
+     k_1_pars = list(sample_k1 = FALSE,
+                     min_u     = 0,
+                     max_u     = 5,
+                     k1_prior  = TRUE)
 ) {
   
   #   # Handling formula interface
@@ -540,15 +544,16 @@ hebart <- function(
   y_hat_store <- matrix(NA, ncol = length(y), nrow = store_size)
   log_lik_store <- rep(NA, store_size)
   full_cond_store <- matrix(NA, ncol = num_trees, nrow = store_size)
+  samples_k1      <- rep(NA, store_size)
   
   # Scale the response target variable
   y_mean <- mean(y)
-  y_sd <- sd(y)
+  y_sd <- stats::sd(y)
   y_scale <- (y - y_mean) / y_sd
   n <- length(y_scale)
   
   # Get the group matrix M
-  M <- model.matrix(~ factor(group) - 1)
+  M <- stats::model.matrix(~ factor(group) - 1)
   group_sizes <- table(group)
   num_groups <- length(group_sizes)
   
@@ -648,7 +653,7 @@ hebart <- function(
       if ((i > burn) & ((i %% thin) == 0)) {
         full_cond_store[curr, j] <- l_old
       }
-      if (a > runif(1)) {
+      if (a > stats::runif(1)) {
         # Make changes if accept
         curr_trees <- new_trees
       } # End of accept if statement
@@ -681,11 +686,22 @@ hebart <- function(
     # Update tau and sigma
     tau <- update_tau(y, M, nu, lambda, groups, k_1, k_2)
     sigma <- 1 / sqrt(tau)
+  
     
+      #   if(sample_k1){
+      #     # We can set these parameters more smartly
+      #     sampled_k1 <- update_k1(y, min_u, max_u, k_1, k_2, M,
+      #  nu, lambda, prior = k1_prior)
+      #
+      #     samples_k1[i] <- k_1
+      #     if(sampled_k1 != k_1){ samples_k1[i] <- k_1 <- sampled_k1 }
+      #   }
+
     # Get the overall log likelihood
-    log_lik <- sum(dnorm(y_scale, mean = predictions, sd = sigma, log = TRUE))
+    log_lik <- sum(stats::dnorm(y_scale, mean = predictions, sd = sigma, log = TRUE))
   } # End iterations loop
   cat("\n") # Make sure progress bar ends on a new line
+  
   
   result <- list(
     trees = tree_store,
@@ -701,6 +717,9 @@ hebart <- function(
     store_size = store_size,
     num_trees = num_trees
   )
+  
+    # Saving the k_1 samples
+    if(sample_k1) result$samples_k1 <-  samples_k1
   
     # RMSE calculation
     pred <- predict_hebart(X, groups, result, type = "mean")

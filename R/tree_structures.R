@@ -209,7 +209,6 @@ grow_tree <- function(X, y, num_groups, curr_tree, node_min_size) {
 #' @param X The set of covariates
 #' @param y The response variable groups
 #' @param curr_tree The current state of the tree
-#' @param groups The groups
 
 # Prune_tree function -----------------------------------------------------
 

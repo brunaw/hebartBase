@@ -2,19 +2,9 @@
 % Please edit documentation in R/tree_structures.R
 \name{create_stump}
 \alias{create_stump}
-\alias{update_tree}
 \title{Create tree stumps}
 \usage{
 create_stump(num_trees, groups, y, X)
-
-update_tree(
-  X,
-  y,
-  groups,
-  type = c("grow", "prune", "change", "swap"),
-  curr_tree,
-  node_min_size
-)
 }
 \arguments{
 \item{num_trees}{The number of trees}
@@ -24,23 +14,11 @@ update_tree(
 \item{y}{The response variable}
 
 \item{X}{The set of covariates}
-
-\item{type}{The action: grow, prune, change or swap}
-
-\item{curr_tree}{The current state of the tree}
-
-\item{node_min_size}{The minimum number of observations in 
-each terminal node}
 }
 \description{
 A function that returns a tree stump (initial tree) given
 # the model characteristics
-
-A function that returns a tree stump (initial tree) given
-# the model characteristics
 }
 \author{
-Bruna Wundervald, \email{brunadaviesw@gmail.com}, Andrew Parnell
-
 Bruna Wundervald, \email{brunadaviesw@gmail.com}, Andrew Parnell
 }

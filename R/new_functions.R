@@ -460,72 +460,72 @@
 
 # Get complete conditions -------------------------------------------------
 
-tree_full_conditional <- function(tree, R, tau, tau_mu) {
-  # Function to compute log full conditional distirbution for an individual tree
-  # R is a vector of partial residuals
-  
-  # Need to calculate log complete conditional, involves a sum over terminal nodes
-  
-  # First find which rows are terminal nodes
-  which_terminal <- which(tree$tree_matrix[, "terminal"] == 1)
-  
-  # Get node sizes for each terminal node
-  nj <- tree$tree_matrix[which_terminal, "node_size"]
-  
-  # Get sum of residuals and sum of residuals squared within each terminal node
-  sumRsq_j <- aggregate(R, by = list(tree$node_indices), function(x) sum(x^2))[, 2]
-  S_j <- aggregate(R, by = list(tree$node_indices), sum)[, 2]
-  
-  # Now calculate the log posterior
-  # log_post = 0.5 * length(R) * log(tau) + sum(0.5 * log( tau_mu / (tau_mu + nj * tau)) -
-  #   0.5 * tau * (sumRsq_j - tau * S_j^2 / (tau_mu + nj * tau) ) )
-  log_post <- 0.5 * length(R) * log(tau) +
-    0.5 * (sum(log(tau_mu / (tau_mu + nj * tau))) -
-             tau * sum(sumRsq_j) +
-             tau^2 * sum(S_j^2 / (tau_mu + nj * tau)))
-  return(log_post)
-  #
-  # New Mahdi version - slower
-  # P1 = 0.5 * length(R) * log(tau)
-  # P2 = 0.5 * sum( log( tau_mu / (tau_mu + nj * tau)))
-  # P3 = -0.5 * tau * sum( sumRsq_j )
-  # P4 = 0.5 * (tau^2) * sum ( (S_j^2) / (tau_mu + nj * tau) )
-  #
-  # return(P1 + P2 + P3 + P4)
-}
+# tree_full_conditional <- function(tree, R, tau, tau_mu) {
+#   # Function to compute log full conditional distirbution for an individual tree
+#   # R is a vector of partial residuals
+#   
+#   # Need to calculate log complete conditional, involves a sum over terminal nodes
+#   
+#   # First find which rows are terminal nodes
+#   which_terminal <- which(tree$tree_matrix[, "terminal"] == 1)
+#   
+#   # Get node sizes for each terminal node
+#   nj <- tree$tree_matrix[which_terminal, "node_size"]
+#   
+#   # Get sum of residuals and sum of residuals squared within each terminal node
+#   sumRsq_j <- stats::aggregate(R, by = list(tree$node_indices), function(x) sum(x^2))[, 2]
+#   S_j <- stats::aggregate(R, by = list(tree$node_indices), sum)[, 2]
+#   
+#   # Now calculate the log posterior
+#   # log_post = 0.5 * length(R) * log(tau) + sum(0.5 * log( tau_mu / (tau_mu + nj * tau)) -
+#   #   0.5 * tau * (sumRsq_j - tau * S_j^2 / (tau_mu + nj * tau) ) )
+#   log_post <- 0.5 * length(R) * log(tau) +
+#     0.5 * (sum(log(tau_mu / (tau_mu + nj * tau))) -
+#              tau * sum(sumRsq_j) +
+#              tau^2 * sum(S_j^2 / (tau_mu + nj * tau)))
+#   return(log_post)
+#   #
+#   # New Mahdi version - slower
+#   # P1 = 0.5 * length(R) * log(tau)
+#   # P2 = 0.5 * sum( log( tau_mu / (tau_mu + nj * tau)))
+#   # P3 = -0.5 * tau * sum( sumRsq_j )
+#   # P4 = 0.5 * (tau^2) * sum ( (S_j^2) / (tau_mu + nj * tau) )
+#   #
+#   # return(P1 + P2 + P3 + P4)
+# }
 
 # Tree conditional for HEBART
 # logdet fuction useful for simple return of log determinant
-logdet <- function(A) as.numeric(determinant(A, logarithm = TRUE)$modulus)
-tree_full_conditional_hebart <- function(tree, R, k_1, k_2, M, nu, lambda) {
-  # Function to compute log full conditional distribution for an individual tree
-  # R is a vector of partial residuals
-  
-  # hbeart version is
-  # log_cond = sum( log(gamma(n_j/2 + alpha)) - 0.5 * logdet(W) - (n_j/2 + alpha) *
-  #    log(beta + 0.5 * t(R_j)%*%solve(W, R_j) )
-  # where now W = k_2 * ones %*% t(ones) + k_1 * M %*% t(M) + diag(n_j)
-  # where M is the group allocation matrix.
-  
-  # First find which rows are terminal nodes
-  which_terminal <- which(tree$tree_matrix[, "terminal"] == 1)
-  
-  # Get node sizes for each terminal node
-  nj <- tree$tree_matrix[which_terminal, "node_size"]
-  
-  log_cond <- 0
-  for (i in 1:length(nj)) {
-    M_j <- M[tree$node_indices == which_terminal[i], , drop = FALSE]
-    R_j <- R[tree$node_indices == which_terminal[i], drop = FALSE]
-    W <- k_2 * matrix(1, nrow = nj[i], ncol = nj[i]) + k_1 * tcrossprod(M_j) + diag(nj[i])
-    log_cond <- log_cond - 0.5 * logdet(W) + lgamma(nj[i] / 2 + nu / 2) - (nj[i] / 2 + nu / 2) *
-      log(lambda / 2 + 0.5 * t(R_j) %*% solve(W, R_j))
-    # There's also this term in the maths which I don't think is necessary
-    # - 0.5 * nj[i] * log(2 * pi)
-  }
-  
-  return(log_cond)
-}
+# logdet <- function(A) as.numeric(determinant(A, logarithm = TRUE)$modulus)
+# tree_full_conditional_hebart <- function(tree, R, k_1, k_2, M, nu, lambda) {
+#   # Function to compute log full conditional distribution for an individual tree
+#   # R is a vector of partial residuals
+#   
+#   # hbeart version is
+#   # log_cond = sum( log(gamma(n_j/2 + alpha)) - 0.5 * logdet(W) - (n_j/2 + alpha) *
+#   #    log(beta + 0.5 * t(R_j)%*%solve(W, R_j) )
+#   # where now W = k_2 * ones %*% t(ones) + k_1 * M %*% t(M) + diag(n_j)
+#   # where M is the group allocation matrix.
+#   
+#   # First find which rows are terminal nodes
+#   which_terminal <- which(tree$tree_matrix[, "terminal"] == 1)
+#   
+#   # Get node sizes for each terminal node
+#   nj <- tree$tree_matrix[which_terminal, "node_size"]
+#   
+#   log_cond <- 0
+#   for (i in 1:length(nj)) {
+#     M_j <- M[tree$node_indices == which_terminal[i], , drop = FALSE]
+#     R_j <- R[tree$node_indices == which_terminal[i], drop = FALSE]
+#     W <- k_2 * matrix(1, nrow = nj[i], ncol = nj[i]) + k_1 * tcrossprod(M_j) + diag(nj[i])
+#     log_cond <- log_cond - 0.5 * logdet(W) + lgamma(nj[i] / 2 + nu / 2) - (nj[i] / 2 + nu / 2) *
+#       log(lambda / 2 + 0.5 * t(R_j) %*% solve(W, R_j))
+#     # There's also this term in the maths which I don't think is necessary
+#     # - 0.5 * nj[i] * log(2 * pi)
+#   }
+#   
+#   return(log_cond)
+# }
 
 
 # Get predictions ---------------------------------------------------------
@@ -617,170 +617,170 @@ tree_full_conditional_hebart <- function(tree, R, k_1, k_2, M, nu, lambda) {
 
 # Get tree priors ---------------------------------------------------------
 
-get_tree_prior <- function(tree, alpha, beta) {
-  # Returns the tree log prior score
-  
-  # Need to work out the depth of the tree
-  # First find the level of each node, then the depth is the maximum of the level
-  level <- rep(NA, nrow(tree$tree_matrix))
-  level[1] <- 0 # First row always level 0
-  
-  # Escpae quickly if tree is just a stump
-  if (nrow(tree$tree_matrix) == 1) {
-    return(log(1 - alpha)) # Tree depth is 0
-  }
-  
-  
-  for (i in 2:nrow(tree$tree_matrix)) {
-    # Find the current parent
-    curr_parent <- tree$tree_matrix[i, "parent"]
-    # This child must have a level one greater than it's current parent
-    level[i] <- level[curr_parent] + 1
-  }
-  
-  # Only compute for the internal nodes
-  internal_nodes <- which(tree$tree_matrix[, "terminal"] == 0)
-  log_prior <- 0
-  for (i in 1:length(internal_nodes)) {
-    log_prior <- log_prior + log(alpha) - beta * log(1 + level[internal_nodes[i]])
-  }
-  # Now add on terminal nodes
-  terminal_nodes <- which(tree$tree_matrix[, "terminal"] == 1)
-  for (i in 1:length(terminal_nodes)) {
-    log_prior <- log_prior + log(1 - alpha * ((1 + level[terminal_nodes[i]])^(-beta)))
-  }
-  
-  
-  return(log_prior)
-}
+# get_tree_prior <- function(tree, alpha, beta) {
+#   # Returns the tree log prior score
+#   
+#   # Need to work out the depth of the tree
+#   # First find the level of each node, then the depth is the maximum of the level
+#   level <- rep(NA, nrow(tree$tree_matrix))
+#   level[1] <- 0 # First row always level 0
+#   
+#   # Escpae quickly if tree is just a stump
+#   if (nrow(tree$tree_matrix) == 1) {
+#     return(log(1 - alpha)) # Tree depth is 0
+#   }
+#   
+#   
+#   for (i in 2:nrow(tree$tree_matrix)) {
+#     # Find the current parent
+#     curr_parent <- tree$tree_matrix[i, "parent"]
+#     # This child must have a level one greater than it's current parent
+#     level[i] <- level[curr_parent] + 1
+#   }
+#   
+#   # Only compute for the internal nodes
+#   internal_nodes <- which(tree$tree_matrix[, "terminal"] == 0)
+#   log_prior <- 0
+#   for (i in 1:length(internal_nodes)) {
+#     log_prior <- log_prior + log(alpha) - beta * log(1 + level[internal_nodes[i]])
+#   }
+#   # Now add on terminal nodes
+#   terminal_nodes <- which(tree$tree_matrix[, "terminal"] == 1)
+#   for (i in 1:length(terminal_nodes)) {
+#     log_prior <- log_prior + log(1 - alpha * ((1 + level[terminal_nodes[i]])^(-beta)))
+#   }
+#   
+#   
+#   return(log_prior)
+# }
 
 # Simulate_mu -------------------------------------------------------------
 
-simulate_mu <- function(tree, R, tau, tau_mu) {
-  
-  # Simulate mu values for a given tree
-  
-  # First find which rows are terminal nodes
-  which_terminal <- which(tree$tree_matrix[, "terminal"] == 1)
-  
-  # Get node sizes for each terminal node
-  nj <- tree$tree_matrix[which_terminal, "node_size"]
-  
-  # Get sum of residuals in each terminal node
-  sumR <- aggregate(R, by = list(tree$node_indices), sum)[, 2]
-  
-  # Now calculate mu values
-  mu <- rnorm(length(nj),
-              mean = tau * sumR / (nj * tau + tau_mu),
-              sd = sqrt(1 / (nj * tau + tau_mu))
-  )
-  
-  # Wipe all the old mus out for other nodes
-  tree$tree_matrix[, "mu"] <- NA
-  
-  # Put in just the ones that are useful
-  tree$tree_matrix[which_terminal, "mu"] <- mu
-  
-  return(tree)
-}
+# simulate_mu <- function(tree, R, tau, tau_mu) {
+#   
+#   # Simulate mu values for a given tree
+#   
+#   # First find which rows are terminal nodes
+#   which_terminal <- which(tree$tree_matrix[, "terminal"] == 1)
+#   
+#   # Get node sizes for each terminal node
+#   nj <- tree$tree_matrix[which_terminal, "node_size"]
+#   
+#   # Get sum of residuals in each terminal node
+#   sumR <- aggregate(R, by = list(tree$node_indices), sum)[, 2]
+#   
+#   # Now calculate mu values
+#   mu <- rnorm(length(nj),
+#               mean = tau * sumR / (nj * tau + tau_mu),
+#               sd = sqrt(1 / (nj * tau + tau_mu))
+#   )
+#   
+#   # Wipe all the old mus out for other nodes
+#   tree$tree_matrix[, "mu"] <- NA
+#   
+#   # Put in just the ones that are useful
+#   tree$tree_matrix[which_terminal, "mu"] <- mu
+#   
+#   return(tree)
+# }
 
-simulate_mu_hebart <- function(tree, R, tau, k_1, k_2) {
-  
-  # Simulate mu values for a given tree
-  
-  # First find which rows are terminal nodes
-  which_terminal <- which(tree$tree_matrix[, "terminal"] == 1)
-  
-  # Get node sizes for each terminal node
-  nj <- tree$tree_matrix[which_terminal, "node_size"]
-  
-  # Get sum of residuals in each terminal node
-  sumR <- aggregate(R, by = list(tree$node_indices), sum)[, 2]
-  
-  # Now calculate mu values
-  mu <- rnorm(length(nj),
-              mean = (sumR / k_1) / (nj / k_1 + 1 / k_2),
-              sd = sqrt(1 / (tau * nj / k_1 + 1 / k_2))
-  )
-  
-  # Wipe all the old mus out for other nodes
-  tree$tree_matrix[, "mu"] <- NA
-  
-  # Put in just the ones that are useful
-  tree$tree_matrix[which_terminal, "mu"] <- mu
-  
-  return(tree)
-}
-
-simulate_mu_hebart2 <- function(tree, R, M, tau, k_1, k_2) {
-  
-  # Simulate mu values for a given tree
-  
-  # this is the marginalised mu version from
-  # https://bookdown.org/connect/#/apps/56e67516-559f-4d69-91df-54702fbc2206/access
-  
-  # First find which rows are terminal nodes
-  which_terminal <- which(tree$tree_matrix[, "terminal"] == 1)
-  
-  # Get node sizes for each terminal node
-  nj <- tree$tree_matrix[which_terminal, "node_size"]
-  
-  # Wipe all the old mus out for other nodes
-  tree$tree_matrix[, "mu"] <- NA
-  
-  # Loop through terminal nodes to get values
-  for (i in 1:length(nj)) {
-    M_j <- M[tree$node_indices == which_terminal[i], , drop = FALSE]
-    R_j <- R[tree$node_indices == which_terminal[i], drop = FALSE]
-    Psi <- k_1 * tcrossprod(M_j) + diag(nj[i])
-    ones <- rep(1, nj[i])
-    Prec_bit <- t(ones)%*%solve(Psi, ones) + 1/k_2
-    mean <- t(ones)%*%Psi%*%R_j / Prec_bit
-    tree$tree_matrix[which_terminal[i], "mu"] <- rnorm(1,
-                                                       mean,
-                                                       sd = 1/sqrt(tau*Prec_bit))
-  }
-  
-  return(tree)
-}
+# simulate_mu_hebart <- function(tree, R, tau, k_1, k_2) {
+#   
+#   # Simulate mu values for a given tree
+#   
+#   # First find which rows are terminal nodes
+#   which_terminal <- which(tree$tree_matrix[, "terminal"] == 1)
+#   
+#   # Get node sizes for each terminal node
+#   nj <- tree$tree_matrix[which_terminal, "node_size"]
+#   
+#   # Get sum of residuals in each terminal node
+#   sumR <- aggregate(R, by = list(tree$node_indices), sum)[, 2]
+#   
+#   # Now calculate mu values
+#   mu <- rnorm(length(nj),
+#               mean = (sumR / k_1) / (nj / k_1 + 1 / k_2),
+#               sd = sqrt(1 / (tau * nj / k_1 + 1 / k_2))
+#   )
+#   
+#   # Wipe all the old mus out for other nodes
+#   tree$tree_matrix[, "mu"] <- NA
+#   
+#   # Put in just the ones that are useful
+#   tree$tree_matrix[which_terminal, "mu"] <- mu
+#   
+#   return(tree)
+# }
+# 
+# simulate_mu_hebart2 <- function(tree, R, M, tau, k_1, k_2) {
+#   
+#   # Simulate mu values for a given tree
+#   
+#   # this is the marginalised mu version from
+#   # https://bookdown.org/connect/#/apps/56e67516-559f-4d69-91df-54702fbc2206/access
+#   
+#   # First find which rows are terminal nodes
+#   which_terminal <- which(tree$tree_matrix[, "terminal"] == 1)
+#   
+#   # Get node sizes for each terminal node
+#   nj <- tree$tree_matrix[which_terminal, "node_size"]
+#   
+#   # Wipe all the old mus out for other nodes
+#   tree$tree_matrix[, "mu"] <- NA
+#   
+#   # Loop through terminal nodes to get values
+#   for (i in 1:length(nj)) {
+#     M_j <- M[tree$node_indices == which_terminal[i], , drop = FALSE]
+#     R_j <- R[tree$node_indices == which_terminal[i], drop = FALSE]
+#     Psi <- k_1 * tcrossprod(M_j) + diag(nj[i])
+#     ones <- rep(1, nj[i])
+#     Prec_bit <- t(ones)%*%solve(Psi, ones) + 1/k_2
+#     mean <- t(ones)%*%Psi%*%R_j / Prec_bit
+#     tree$tree_matrix[which_terminal[i], "mu"] <- rnorm(1,
+#                                                        mean,
+#                                                        sd = 1/sqrt(tau*Prec_bit))
+#   }
+#   
+#   return(tree)
+# }
 
 
 # Simulate mu groups hebart -----------------------------------------------
 
-simulate_mu_groups_hebart <- function(tree, R, groups, tau, k_1, k_2) {
-  
-  # Simulate the group mu values for a given tree
-  
-  # First find which rows are terminal nodes
-  which_terminal <- which(tree$tree_matrix[, "terminal"] == 1)
-  
-  # Get node sizes for each terminal node
-  nj <- tree$tree_matrix[which_terminal, "node_size"]
-  
-  num_groups <- length(unique(groups))
-  
-  # Get the group means in each terminal node
-  # Doing this with loops but probably can be faster
-  for (i in 1:length(nj)) {
-    curr_R <- R[tree$node_indices == which_terminal[i]]
-    curr_groups <- groups[tree$node_indices == which_terminal[i]]
-    curr_group_sizes <- table(curr_groups)
-    group_R_means <- aggregate(curr_R, by = list(curr_groups), "sum")[, 2]
-    curr_mu <- tree$tree_matrix[which_terminal[i], "mu"]
-    curr_group_mu <- rnorm(num_groups,
-                           mean = (curr_mu / k_1 + group_R_means) / (curr_group_sizes + 1 / k_1),
-                           sd = sqrt(1 / (curr_group_sizes + 1 / k_1))
-    )
-    tree$tree_matrix[which_terminal[i], paste0("mu", 1:num_groups)] <- curr_group_mu
-    
-  }
-  
-  # Wipe all the old mu groups out for other nodes
-  which_non_terminal <- which(tree$tree_matrix[, "terminal"] == 0)
-  tree$tree_matrix[which_non_terminal, paste0("mu", 1:num_groups)] <- NA
-  
-  return(tree)
-}
+# simulate_mu_groups_hebart <- function(tree, R, groups, tau, k_1, k_2) {
+#   
+#   # Simulate the group mu values for a given tree
+#   
+#   # First find which rows are terminal nodes
+#   which_terminal <- which(tree$tree_matrix[, "terminal"] == 1)
+#   
+#   # Get node sizes for each terminal node
+#   nj <- tree$tree_matrix[which_terminal, "node_size"]
+#   
+#   num_groups <- length(unique(groups))
+#   
+#   # Get the group means in each terminal node
+#   # Doing this with loops but probably can be faster
+#   for (i in 1:length(nj)) {
+#     curr_R <- R[tree$node_indices == which_terminal[i]]
+#     curr_groups <- groups[tree$node_indices == which_terminal[i]]
+#     curr_group_sizes <- table(curr_groups)
+#     group_R_means <- aggregate(curr_R, by = list(curr_groups), "sum")[, 2]
+#     curr_mu <- tree$tree_matrix[which_terminal[i], "mu"]
+#     curr_group_mu <- rnorm(num_groups,
+#                            mean = (curr_mu / k_1 + group_R_means) / (curr_group_sizes + 1 / k_1),
+#                            sd = sqrt(1 / (curr_group_sizes + 1 / k_1))
+#     )
+#     tree$tree_matrix[which_terminal[i], paste0("mu", 1:num_groups)] <- curr_group_mu
+#     
+#   }
+#   
+#   # Wipe all the old mu groups out for other nodes
+#   which_non_terminal <- which(tree$tree_matrix[, "terminal"] == 0)
+#   tree$tree_matrix[which_non_terminal, paste0("mu", 1:num_groups)] <- NA
+#   
+#   return(tree)
+# }
 
 
 # Update tau --------------------------------------------------------------
@@ -797,42 +797,42 @@ simulate_mu_groups_hebart <- function(tree, R, groups, tau, k_1, k_2) {
 #   return(tau)
 # }
 
-update_tau <- function(y, M, nu, lambda, num_groups, k_1, k_2) {
-  
-  n <- length(y)
-  W_1 <- (k_2 * matrix(1, nrow = n, ncol = n)) + (k_1 * M %*% t(M)) + diag(n)
-  S <- t(y) %*% solve(W_1, y)
-  
-  # Update from maths in Github folder
-  tau <- stats::rgamma(1,
-                       shape = (nu + n) / 2,
-                       rate = (S + nu * lambda) / 2
-  )
-  
-  return(tau)
-}
+# update_tau <- function(y, M, nu, lambda, num_groups, k_1, k_2) {
+#   
+#   n <- length(y)
+#   W_1 <- (k_2 * matrix(1, nrow = n, ncol = n)) + (k_1 * M %*% t(M)) + diag(n)
+#   S <- t(y) %*% solve(W_1, y)
+#   
+#   # Update from maths in Github folder
+#   tau <- stats::rgamma(1,
+#                        shape = (nu + n) / 2,
+#                        rate = (S + nu * lambda) / 2
+#   )
+#   
+#   return(tau)
+# }
 
 # get_children ------------------------------------------------------------
 
 # A function which if, the current node is terminal, returns the node, or if not returns the children and calls the function again on the children
-get_children <- function(tree_mat, parent) {
-  # Create a holder for the children
-  all_children <- NULL
-  if (tree_mat[parent, "terminal"] == 1) {
-    # If the node is terminal return the list so far
-    return(c(all_children, parent))
-  } else {
-    # If not get the current children
-    curr_child_left <- tree_mat[parent, "child_left"]
-    curr_child_right <- tree_mat[parent, "child_right"]
-    # Return the children and also the children of the children recursively
-    return(c(
-      all_children,
-      get_children(tree_mat, curr_child_left),
-      get_children(tree_mat, curr_child_right)
-    ))
-  }
-}
+# get_children <- function(tree_mat, parent) {
+#   # Create a holder for the children
+#   all_children <- NULL
+#   if (tree_mat[parent, "terminal"] == 1) {
+#     # If the node is terminal return the list so far
+#     return(c(all_children, parent))
+#   } else {
+#     # If not get the current children
+#     curr_child_left <- tree_mat[parent, "child_left"]
+#     curr_child_right <- tree_mat[parent, "child_right"]
+#     # Return the children and also the children of the children recursively
+#     return(c(
+#       all_children,
+#       get_children(tree_mat, curr_child_left),
+#       get_children(tree_mat, curr_child_right)
+#     ))
+#   }
+# }
 
 
 # Predict function --------------------------------------------------------
@@ -878,17 +878,17 @@ get_children <- function(tree_mat, parent) {
 
 # Simulate friedman -------------------------------------------------------
 
-sim_friedman <- function(n,
-                         pars = c(10, 20, 10, 5),
-                         p = 0, scale_err = 1) {
-  # Simulate some data using Friedman's example
-  # y = 10sin(πx1x2)+20(x3−0.5)2+10x4+5x5+ε
-  X <- matrix(runif(n * (5 + p)), nrow = n, ncol = 5 + p)
-  mean <- pars[1] * sin(pi * X[, 1] * X[, 2]) + pars[2] * (X[, 3] - 0.5)^2 +
-    pars[3] * X[, 4] + pars[4] * X[, 5]
-  y <- rnorm(n, mean, scale_err)
-  return(list(
-    y = y, X = X, df = cbind(y, X),
-    true_mean = mean, true_scale = scale_err
-  ))
-}
+# sim_friedman <- function(n,
+#                          pars = c(10, 20, 10, 5),
+#                          p = 0, scale_err = 1) {
+#   # Simulate some data using Friedman's example
+#   # y = 10sin(πx1x2)+20(x3−0.5)2+10x4+5x5+ε
+#   X <- matrix(runif(n * (5 + p)), nrow = n, ncol = 5 + p)
+#   mean <- pars[1] * sin(pi * X[, 1] * X[, 2]) + pars[2] * (X[, 3] - 0.5)^2 +
+#     pars[3] * X[, 4] + pars[4] * X[, 5]
+#   y <- rnorm(n, mean, scale_err)
+#   return(list(
+#     y = y, X = X, df = cbind(y, X),
+#     true_mean = mean, true_scale = scale_err
+#   ))
+# }

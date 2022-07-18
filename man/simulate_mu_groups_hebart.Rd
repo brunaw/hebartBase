@@ -22,6 +22,9 @@ simulate_mu_groups_hebart(tree, R, groups, tau, k_1, k_2)
 \description{
 Simulates mu_j for each group
 }
+\details{
+
+}
 \author{
 Bruna Wundervald, \email{brunadaviesw@gmail.com}, Andrew Parnell
 }

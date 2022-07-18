@@ -13,7 +13,7 @@ change_tree(X, y, curr_tree, node_min_size)
 
 \item{curr_tree}{The current state of the tree}
 
-\item{node_min_size}{The minimum number of observations in 
+\item{node_min_size}{The minimum number of observations in
 each terminal node}
 }
 \description{

@@ -45,7 +45,7 @@ k1_pars        <-  list(sample_k1 = FALSE)
 HEBART_out <- hebart(formula,
                      data           = train,
                      group_variable = "group", 
-                     num_trees = 10,
+                     num_trees = 30,
                      priors = list(
                        alpha = 0.95, # Prior control list
                        beta = 2,
@@ -54,7 +54,7 @@ HEBART_out <- hebart(formula,
                        nu = 3,
                        lambda = 0.1
                      ))
-
+HEBART_out
 # Look at the output
 n_saved <- length(HEBART_out$sigma)
 qplot(1:n_saved, HEBART_out$sigma, xlab = "Iteration (thinned)", ylab = "Residual\nsd") + theme_minimal() + theme(axis.title.y = element_text(angle = 0, vjust = 1, hjust = 0))

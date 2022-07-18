@@ -4,7 +4,7 @@
 \alias{prune_tree}
 \title{Prunes a tree}
 \usage{
-prune_tree(X, y, curr_tree, groups)
+prune_tree(X, y, curr_tree)
 }
 \arguments{
 \item{X}{The set of covariates}
@@ -12,8 +12,6 @@ prune_tree(X, y, curr_tree, groups)
 \item{y}{The response variable groups}
 
 \item{curr_tree}{The current state of the tree}
-
-\item{groups}{The groups}
 }
 \description{
 A function that returns a pruned tree
