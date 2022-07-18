@@ -134,17 +134,11 @@ than the total number of iterations")
     title = "Running rBART..."
   )
   
-  #i = 5
-  
+
   # Start the iterations loop
   for (i in 1:iter) {
     utils::setTxtProgressBar(pb, i)
     
-    if(i == 1){
-      prev_S = 1e10
-    } else {
-    prev_S <- sum((y_scale - predictions_mu_j)^2)
-    }
     # If at the right place store everything
     if ((i > burn) & ((i %% thin) == 0)) {
       curr <- (i - burn) / thin
@@ -174,8 +168,7 @@ than the total number of iterations")
       }
       
       # Propose a new tree via grow/change/prune/swap
-      #type <- sample(c("grow", "prune", "change", "swap"), 1)
-      type <- sample(c("grow", "prune"), 1)
+      type <- sample(c("grow", "prune", "change", "swap"), 1)
       if (i < max(floor(0.1 * burn), 10)) type <- "grow" # Grow for the first few iterations
       
       # Get a new tree!
@@ -191,8 +184,8 @@ than the total number of iterations")
       
       # Calculate the complete conditional and acceptance probability
       l_new <- tree_full_conditional_hebart(
-        tree = new_trees[[j]],
-        R = current_partial_residuals,
+        new_trees[[j]],
+        current_partial_residuals,
         k_1,
         k_2,
         M,
@@ -217,108 +210,233 @@ than the total number of iterations")
       
       # If accepting a new tree update all relevant parts
       a <- exp(l_new - l_old)
-      if(is.nan(a)){ a <- 0}
       
       if ((i > burn) & ((i %% thin) == 0)) {
         full_cond_store[curr, j] <- l_old
       }
-      
-      acc <- a > stats::runif(1)
-      
-      if (acc) {
+      if (a > runif(1)) {
         # Make changes if accept
         curr_trees <- new_trees
-      } 
-      
-      # End of accept if statement
+      } # End of accept if statement
       
       # Update mu whether tree accepted or not
-      # curr_trees[[j]] <- simulate_mu_hebart(
-      #   curr_trees[[j]],
-      #   current_partial_residuals,
-      #   tau, k_1, k_2, num_groups
-      # )
-      # curr_trees[[j]] <- simulate_mu_hebart_2(
-      #   tree      = curr_trees[[j]],
-      #   R = current_partial_residuals,
-      #   tau, k_1, k_2, groups, 
-      #   type = type, 
-      #   acc = acc[1]
-      # )
-      
-      curr_trees[[j]] <- simulate_mu_hebart_3(
-        tree      = curr_trees[[j]],
-        R = current_partial_residuals,
-        tau, k_1, k_2, groups
+      curr_trees[[j]] <- simulate_mu_hebart2(
+        curr_trees[[j]],
+        current_partial_residuals,
+        M,
+        tau, k_1, k_2
       )
-
+      
       # Finally update the group means:
       curr_trees[[j]] <- simulate_mu_groups_hebart(
-        tree = curr_trees[[j]],
-        R = current_partial_residuals,
+        curr_trees[[j]],
+        current_partial_residuals,
         groups,
         tau, k_1, k_2
       )
-       
       
       # Check the trees
       if (any(curr_trees$tree_matrix[, "node_size"] < node_min_size)) browser()
     } # End loop through trees
     
     # Calculate full set of predictions
-    predictions_mu_j <- get_group_predictions(curr_trees, X, groups, single_tree = num_trees == 1)
-    predictions_mu   <- get_predictions(curr_trees, X,single_tree = num_trees == 1)
+    predictions <- get_group_predictions(curr_trees, X, groups, single_tree = num_trees == 1)
+    # predictions <- get_predictions(curr_trees, X, single_tree = num_trees == 1)
+    # S <- sum((y_scale - predictions)^2)
     
-    df_pred <- data.frame(predictions_mu_j, predictions_mu) |> 
-      dplyr::group_by_all() |> 
-      dplyr::slice(1) 
-    
-    res_mu_j <- df_pred |> 
-      dplyr::ungroup() |> 
-      dplyr::summarise(s_muj = sum((predictions_mu_j - predictions_mu)^2)) |> 
-      dplyr::pull(s_muj)
-
-    res_mu <- df_pred |> 
-      dplyr::group_by(predictions_mu) |> 
-      dplyr::slice(1) |> 
-      dplyr::ungroup() |> 
-      dplyr::summarise(s_mu = sum(predictions_mu^2)) |> 
-      dplyr::pull(s_mu)
-    
-    # Y residual 
-    S <- sum((y_scale - predictions_mu_j)^2)
-  
     # Update tau and sigma
-    tau <- hebartBase::update_tau(S = S, 
-                      res_mu_j = res_mu_j, res_mu = res_mu, 
-                      nu = nu, lambda = lambda,
-                      n = length(y_scale),
-                      groups = groups, 
-                      k_1 = k_1, k_2 = k_2 
-    )
-    
-    # if it goes somewhere bad, restart it 
-    # if(prev_S < S/1.2){
-    #   tau <- inits$tau
-    #   k_1 <- priors$k_1
-    # }
-    
-    
+    tau <- update_tau(y, M, nu, lambda, num_groups, k_1, k_2)
     sigma <- 1 / sqrt(tau)
     
-    # # Sample k1
-    if(sample_k1){
-      # We can set these parameters more smartly
-      sampled_k1 <- update_k1(y, min_u, max_u, k_1, k_2, M, nu, lambda, prior = k1_prior)
-
-      samples_k1[i] <- k_1
-      if(sampled_k1 != k_1){ samples_k1[i] <- k_1 <- sampled_k1 }
-    }
-    
     # Get the overall log likelihood
-    log_lik <- sum(stats::dnorm(y_scale, mean = predictions, sd = sigma, log = TRUE))
+    log_lik <- sum(dnorm(y_scale, mean = predictions, sd = sigma, log = TRUE))
   } # End iterations loop
-  cat("\n") # Make sure progress bar ends on a new line
+  cat("\n")
+  
+  
+  # # Start the iterations loop
+  # for (i in 1:iter) {
+  #   utils::setTxtProgressBar(pb, i)
+  #   
+  #   if(i == 1){
+  #     prev_S = 1e10
+  #   } else {
+  #   prev_S <- sum((y_scale - predictions_mu_j)^2)
+  #   }
+  #   # If at the right place store everything
+  #   if ((i > burn) & ((i %% thin) == 0)) {
+  #     curr <- (i - burn) / thin
+  #     tree_store[[curr]] <- curr_trees
+  #     sigma_store[curr] <- sigma
+  #     y_hat_store[curr, ] <- predictions
+  #     log_lik_store[curr] <- log_lik
+  #   }
+  #   
+  #   # Start looping through trees
+  #   for (j in 1:num_trees) {
+  #     
+  #     # Calculate partial residuals for current tree
+  #     if (num_trees > 1) {
+  #       partial_trees <- curr_trees
+  #       partial_trees[[j]] <- NULL # Blank out that element of the list
+  #       current_partial_residuals <- y_scale -
+  #         get_group_predictions(partial_trees, X, groups,
+  #                               single_tree = num_trees == 2
+  #         )
+  #       # current_partial_residuals <- y_scale -
+  #       # get_predictions(partial_trees, X,
+  #       #                 single_tree = num_trees == 2
+  #       # )
+  #     } else {
+  #       current_partial_residuals <- y_scale
+  #     }
+  #     
+  #     # Propose a new tree via grow/change/prune/swap
+  #     #type <- sample(c("grow", "prune", "change", "swap"), 1)
+  #     type <- sample(c("grow", "prune"), 1)
+  #     if (i < max(floor(0.1 * burn), 10)) type <- "grow" # Grow for the first few iterations
+  #     
+  #     # Get a new tree!
+  #     new_trees <- curr_trees
+  #     new_trees[[j]] <- update_tree(
+  #       y = y_scale,
+  #       X = X,
+  #       groups = groups,
+  #       type = type,
+  #       curr_tree = curr_trees[[j]],
+  #       node_min_size = node_min_size
+  #     )
+  #     
+  #     # Calculate the complete conditional and acceptance probability
+  #     l_new <- tree_full_conditional_hebart(
+  #       tree = new_trees[[j]],
+  #       R = current_partial_residuals,
+  #       k_1,
+  #       k_2,
+  #       M,
+  #       nu,
+  #       lambda
+  #     ) +
+  #       get_tree_prior(new_trees[[j]], alpha, beta)
+  #     
+  #     l_old <- tree_full_conditional_hebart(
+  #       curr_trees[[j]],
+  #       current_partial_residuals,
+  #       k_1,
+  #       k_2,
+  #       M,
+  #       nu,
+  #       lambda
+  #     ) +
+  #       get_tree_prior(curr_trees[[j]], alpha, beta)
+  #     
+  #     # cat('tree', j,'\n')
+  #     # cat('l_new = ',l_new,'; l_old = ',l_old,'\n')
+  #     
+  #     # If accepting a new tree update all relevant parts
+  #     a <- exp(l_new - l_old)
+  #     if(is.nan(a)){ a <- 0}
+  #     
+  #     if ((i > burn) & ((i %% thin) == 0)) {
+  #       full_cond_store[curr, j] <- l_old
+  #     }
+  #     
+  #     acc <- a > stats::runif(1)
+  #     
+  #     if (acc) {
+  #       # Make changes if accept
+  #       curr_trees <- new_trees
+  #     } 
+  #     
+  #     # End of accept if statement
+  #     
+  #     # Update mu whether tree accepted or not
+  #     # curr_trees[[j]] <- simulate_mu_hebart(
+  #     #   curr_trees[[j]],
+  #     #   current_partial_residuals,
+  #     #   tau, k_1, k_2, num_groups
+  #     # )
+  #     # curr_trees[[j]] <- simulate_mu_hebart_2(
+  #     #   tree      = curr_trees[[j]],
+  #     #   R = current_partial_residuals,
+  #     #   tau, k_1, k_2, groups, 
+  #     #   type = type, 
+  #     #   acc = acc[1]
+  #     # )
+  #     
+  #     curr_trees[[j]] <- simulate_mu_hebart_3(
+  #       tree      = curr_trees[[j]],
+  #       R = current_partial_residuals,
+  #       tau, k_1, k_2, groups
+  #     )
+  # 
+  #     # Finally update the group means:
+  #     curr_trees[[j]] <- simulate_mu_groups_hebart(
+  #       tree = curr_trees[[j]],
+  #       R = current_partial_residuals,
+  #       groups,
+  #       tau, k_1, k_2
+  #     )
+  #      
+  #     
+  #     # Check the trees
+  #     if (any(curr_trees$tree_matrix[, "node_size"] < node_min_size)) browser()
+  #   } # End loop through trees
+  #   
+  #   # Calculate full set of predictions
+  #   predictions_mu_j <- get_group_predictions(curr_trees, X, groups, single_tree = num_trees == 1)
+  #   predictions_mu   <- get_predictions(curr_trees, X,single_tree = num_trees == 1)
+  #   
+  #   df_pred <- data.frame(predictions_mu_j, predictions_mu) |> 
+  #     dplyr::group_by_all() |> 
+  #     dplyr::slice(1) 
+  #   
+  #   res_mu_j <- df_pred |> 
+  #     dplyr::ungroup() |> 
+  #     dplyr::summarise(s_muj = sum((predictions_mu_j - predictions_mu)^2)) |> 
+  #     dplyr::pull(s_muj)
+  # 
+  #   res_mu <- df_pred |> 
+  #     dplyr::group_by(predictions_mu) |> 
+  #     dplyr::slice(1) |> 
+  #     dplyr::ungroup() |> 
+  #     dplyr::summarise(s_mu = sum(predictions_mu^2)) |> 
+  #     dplyr::pull(s_mu)
+  #   
+  #   # Y residual 
+  #   S <- sum((y_scale - predictions_mu_j)^2)
+  # 
+  #   # Update tau and sigma
+  #   tau <- hebartBase::update_tau(S = S, 
+  #                     res_mu_j = res_mu_j, res_mu = res_mu, 
+  #                     nu = nu, lambda = lambda,
+  #                     n = length(y_scale),
+  #                     groups = groups, 
+  #                     k_1 = k_1, k_2 = k_2 
+  #   )
+  #   
+  #   # if it goes somewhere bad, restart it 
+  #   # if(prev_S < S/1.2){
+  #   #   tau <- inits$tau
+  #   #   k_1 <- priors$k_1
+  #   # }
+  #   
+  #   
+  #   sigma <- 1 / sqrt(tau)
+  #   
+  #   # # Sample k1
+  #   if(sample_k1){
+  #     # We can set these parameters more smartly
+  #     sampled_k1 <- update_k1(y, min_u, max_u, k_1, k_2, M, nu, lambda, prior = k1_prior)
+  # 
+  #     samples_k1[i] <- k_1
+  #     if(sampled_k1 != k_1){ samples_k1[i] <- k_1 <- sampled_k1 }
+  #   }
+  #   
+  #   # Get the overall log likelihood
+  #   log_lik <- sum(stats::dnorm(y_scale, mean = predictions, sd = sigma, log = TRUE))
+  # } # End iterations loop
+  # cat("\n") # Make sure progress bar ends on a new line
   
   
   result <- list(
