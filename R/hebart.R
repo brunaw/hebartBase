@@ -687,7 +687,7 @@ hebart <- function(
   } # End iterations loop
   cat("\n") # Make sure progress bar ends on a new line
   
-  return(list(
+  result <- list(
     trees = tree_store,
     sigma = sigma_store,
     y_hat = y_hat_store * y_sd + y_mean,
@@ -700,5 +700,20 @@ hebart <- function(
     thin = thin,
     store_size = store_size,
     num_trees = num_trees
-  ))
+  )
+  
+    # RMSE calculation
+    pred <- predict_hebart(X, groups, result, type = "mean")
+    mse                 <- mean((pred - y_scale)^2)
+    r.squared           <- 1 - mse / stats::var(y_scale)
+
+    result$mse           <- mse
+    result$r.squared     <- r.squared
+    result$num_variables <- length(names_x)
+
+    class(result) <- "hebart"
+
+
+    return(result = result)
+  
 } # End main function
