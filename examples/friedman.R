@@ -42,30 +42,30 @@ k1_pars        <-  list(sample_k1 = FALSE)
 #   num_trees      = 5,
 #   k_1_pars       = k1_pars)
 
-hb_model <- hebart(formula,
-                     data           = train,
-                     group_variable = "group", 
-                     num_trees = 30,
-                     priors = list(
-                       alpha = 0.95, # Prior control list
-                       beta = 2,
-                       k_1 = 1e-10,
-                       k_2 = 0.2,
-                       nu = 3,
-                       lambda = 0.1
-                     ))
+# hb_model <- hebart(formula,
+#                      data           = train,
+#                      group_variable = "group", 
+#                      num_trees = 30,
+#                      priors = list(
+#                        alpha = 0.95, # Prior control list
+#                        beta = 2,
+#                        k_1 = 1e-10,
+#                        k_2 = 0.2,
+#                        nu = 3,
+#                        lambda = 0.1
+#                      ))
 # Look at the output
-n_saved <- length(hb_model$sigma)
-qplot(1:n_saved, hb_model$sigma, xlab = "Iteration (thinned)", ylab = "Residual\nsd") + theme_minimal() + theme(axis.title.y = element_text(angle = 0, vjust = 1, hjust = 0))
-y_hat_HEBART <- apply(hb_model$y_hat, 2, "mean")
-qplot(y, y_hat_HEBART) + geom_abline()
-cor(y, y_hat_HEBART)
+# n_saved <- length(hb_model$sigma)
+# qplot(1:n_saved, hb_model$sigma, xlab = "Iteration (thinned)", ylab = "Residual\nsd") + theme_minimal() + theme(axis.title.y = element_text(angle = 0, vjust = 1, hjust = 0))
+# y_hat_HEBART <- apply(hb_model$y_hat, 2, "mean")
+# qplot(y, y_hat_HEBART) + geom_abline()
+# cor(y, y_hat_HEBART)
 
-pp <- predict_hebart(test$X, group_test, hb_model, type = "mean")
-sqrt(mean(pp - scale(test$y))^2) # 0.021
-cor(pp, scale(test$y)) # 0.021
-hb_model$sigma 
-qplot(test$y, pp)
+# pp <- predict_hebart(test$X, group_test, hb_model, type = "mean")
+# sqrt(mean(pp - scale(test$y))^2) # 0.021
+# cor(pp, scale(test$y)) # 0.021
+# hb_model$sigma 
+# qplot(test$y, pp)
 
 hb_model <- hebart(formula,
                    data           = train,

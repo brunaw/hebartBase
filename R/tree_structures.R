@@ -161,10 +161,10 @@ grow_tree <- function(X, y, num_groups, curr_tree, node_min_size) {
   if(length(terminal_nodes) == 1){
     node_to_split <- terminal_nodes
   } else {
-  node_to_split <- sample(na.omit(terminal_nodes), 1)
-                          #prob = as.integer(terminal_node_size > node_min_size)
-  #
-  #) # Choose which node to split, set prob to zero for any nodes that are too small
+  node_to_split <- sample(na.omit(terminal_nodes), 1, 
+                          prob = as.integer(terminal_node_size > node_min_size)
+  ) 
+  ##) # Choose which node to split, set prob to zero for any nodes that are too small
   }
   # Choose a split variable uniformly from all columns
   split_variable <- sample(1:ncol(X), 1)
@@ -181,12 +181,17 @@ grow_tree <- function(X, y, num_groups, curr_tree, node_min_size) {
     split_variable
   ]))
   
-  if(length(available_values) < 3){
+  if(length(available_values) < 2){
     return(curr_tree)
   }
+  if(length(available_values) == 2){
+    split_value <- sample(available_values, 1)
+  }
+  
   if(length(available_values) > 2){
   split_value <- sample(available_values[-c(1, length(available_values))], 1)
   } 
+  
   curr_parent <- new_tree$tree_matrix[node_to_split, "parent"] # Make sure to keep the current parent in there. Will be NA if at the root node
   new_tree$tree_matrix[node_to_split, 1:6] <- c(
     0, # Now not temrinal
@@ -360,7 +365,20 @@ change_tree <- function(X, y, curr_tree, node_min_size) {
       use_node_indices,
       new_split_variable
     ]))
-    new_split_value <- sample(available_values[-c(1, length(available_values))], 1)
+    
+    if(length(available_values) < 2){
+      return(curr_tree)
+    }
+    if(length(available_values) == 2){
+      new_split_value <- sample(available_values, 1)
+    }
+    
+    if(length(available_values) > 2){
+      new_split_value <- sample(available_values[-c(1, length(available_values))], 1)
+    } 
+    
+    
+    #new_split_value <- sample(available_values[-c(1, length(available_values))], 1)
     
     
     # Update the tree details

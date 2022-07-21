@@ -62,8 +62,11 @@ get_group_predictions <- function(trees, X, groups, single_tree = FALSE) {
   # Stop nesting problems in case of multiple trees
   if (is.null(names(trees)) & (length(trees) == 1)) trees <- trees[[1]]
   
-  num_groups <- length(unique(groups))
-  group_col_names <- unique(paste0("mu", groups))
+  group_names     <- unique(groups)
+  num_groups      <- length(unique(groups))
+  group_col_names <- paste0("mu", group_names)
+  
+  #group_col_names <- unique(paste0("mu", groups))
   
   # Normally trees will be a list of lists but just in case
   if (single_tree) {
@@ -76,12 +79,12 @@ get_group_predictions <- function(trees, X, groups, single_tree = FALSE) {
       unique_node_indices <- unique(trees$node_indices)
       # Get the node indices for the current X matrix
       curr_X_node_indices <- fill_tree_details(trees, X)$node_indices
-      
+      actual_node_inices  <- unique(curr_X_node_indices)
       # Now loop through all node indices to fill in details
-      for (i in 1:length(unique_node_indices)) {
-        curr_groups <- groups[curr_X_node_indices == unique_node_indices[i]]
-        predictions[curr_X_node_indices == unique_node_indices[i]] <-
-          trees$tree_matrix[unique_node_indices[i], paste0("mu", curr_groups)]
+      for (i in 1:length(actual_node_inices)) {
+        curr_groups <- groups[curr_X_node_indices == actual_node_inices[i]]
+        predictions[curr_X_node_indices == actual_node_inices[i]] <-
+          trees$tree_matrix[actual_node_inices[i], paste0("mu", curr_groups)]
       }
     }
     # More here to deal with more complicated trees - i.e. multiple trees
@@ -130,9 +133,9 @@ predict_hebart <- function(newX, new_groups, hebart_posterior,
     #                                         newX,
     #                                         single_tree = length(curr_trees) == 1
     # )
-    y_hat_mat[i, ] <- get_group_predictions(curr_trees,
-                                            newX,
-                                            new_groups,
+    y_hat_mat[i, ] <- get_group_predictions(trees = curr_trees,
+                                            X = newX,
+                                            groups = new_groups,
                                             single_tree = length(curr_trees) == 1
     )
   }

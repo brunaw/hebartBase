@@ -8,19 +8,18 @@
 # Package loading  ----------------------------------
 library(magrittr)
 library(ggplot2)
+library(lme4)
 library(tidymodels)
 library(hebartBase)
 
 # Dataset split  ------------------------------------
 set.seed(2022)
 df_real     <- lme4::sleepstudy %>% set_names(c('y', 'X1', 'group'))
-table(df_real$group)
 df_real$y   <- c(scale(df_real$y))
-df_real$X1 <- df_real$X1 + rnorm(nrow(df_real))
 data_split  <- initial_split(df_real)
 train       <- training(data_split)
 test        <- testing(data_split)
-groups      <-  train$group
+groups      <- train$group
 # Model parameters -----------------------------------
 group_variable <-  "group"
 formula        <- y ~ X1
@@ -33,89 +32,53 @@ pars           <- list(
 k1_pars        <-  list(sample_k1 = FALSE)
 
 # Running the model ----------------------------------
-# when num_trees = 1
-train$group <- as.numeric(train$group)
-hb_model <- hebart(
-  formula,
-  group_variable = "group",
-  data           = train,
-  control        = pars,
-  num_trees      = 5,
-  k_1_pars       = k1_pars)
-
-hb_model
-hebartBase::grow_tree
-# Results are OK:
-# Formula:
-#   y ~ X1 
-# 
-# Number of trees:         1 
-# Number of covariates:    1 
-# Training error (MSE):    0.6927752 
-# R Squared:               0.3072248 
-
-
 # when num_trees = 15
-hb_model <- hebart(
-  formula,
-  group_variable = "group",
-  data           = train,
-  control        = pars,
-  num_trees      = 15,
-  k_1_pars       = k1_pars)
-hb_model
-# It breaks: 
-# Formula:
-# y ~ X1 
-# 
-# Number of trees:         15 
-# Number of covariates:    1 
-# Training error (MSE):    0.4352189 
-# R Squared:               0.5647811 
-#----------------------------------------------------
-# When we change k_1 --------------------------------
-k1_pars        <-  list(sample_k1 = TRUE,
-                        min_u     = 0.1,
-                        max_u     = 1,
-                        k1_prior  = TRUE)
 
-# when num_trees = 1
-hb_model <- hebart(
-  formula,
-  group_variable = "group",
-  data           = train,
-  control        = pars,
-  num_trees      = 1,
-  k_1_pars       = k1_pars)
-hb_model
-# Results are OK, and even improved:
-# Formula:
-#   y ~ X1 
-# 
-# Number of trees:         1 
-# Number of covariates:    1 
-# Training error (MSE):    0.481118 
-# R Squared:               0.518882 
+hb_model <- hebart(formula,
+                   data           = train,
+                   group_variable = "group", 
+                   num_trees = 15,
+                   priors = list(
+                     alpha = 0.95, # Prior control list
+                     beta = 2,
+                     k_1 = 1e-10,
+                     k_2 = 3,
+                     nu = 2,
+                     lambda = 0.1
+                   ))
 
-
-# when num_trees = 15
-hb_model <- hebart(
-  formula,
-  group_variable = "group",
-  data           = train,
-  control        = pars,
-  num_trees      = 3,
-  k_1_pars       = k1_pars)
-
-hb_model
 # ------------------------------------------- #
 # HEBART result
 # ------------------------------------------- #
 # Formula:
-#   y ~ X1 
+#   NULL 
 # 
 # Number of trees:         15 
 # Number of covariates:    1 
-# Training error (MSE):    0.4217759 
-# R Squared:               0.5782241
-#----------------------------------------------------
+# Training error (MSE):    0.6961328 
+# R Squared:               0.3038672 
+
+pp <- predict_hebart(newX = test, new_groups = test$group,
+                     hebart_posterior  = hb_model, type = "mean")
+sqrt(mean(pp - scale(test$y))^2) # 0.7106369
+cor(pp, scale(test$y)) #  0.7556438
+
+qplot(test$y, pp)
+
+# Comparison to BART --------------------------
+bart_0 = dbarts::bart2(formula, 
+                       data = train,
+                       test = test, 
+                       keepTrees = TRUE)
+pp <- bart_0$yhat.test.mean
+sqrt(mean(pp - scale(test$y))^2) # 0.08045881
+cor(pp, scale(test$y)) #  0.4984845
+qplot(test$y, pp)
+
+# Comparison to LME --------------------------
+lme_ss <- lme4::lmer(y ~ X1 + (1|group), train)
+pp <- predict(lme_ss, test)
+sqrt(mean(pp - scale(test$y))^2) # 0.009018843
+cor(pp, scale(test$y)) # 0.8426536
+
+qplot(test$y, pp)

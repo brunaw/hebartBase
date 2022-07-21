@@ -676,8 +676,8 @@ hebart <- function(
       
       # Finally update the group means:
       curr_trees[[j]] <- simulate_mu_groups_hebart(
-        curr_trees[[j]],
-        current_partial_residuals,
+        tree = curr_trees[[j]],
+        R = current_partial_residuals,
         groups,
         tau, k_1, k_2
       )
