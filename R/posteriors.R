@@ -422,6 +422,7 @@ simulate_mu_groups_hebart <- function(tree, R, groups, tau, k_1, k_2) {
   # Get the group means in each terminal node
   # Doing this with loops but probably can be faster
   for (i in 1:length(nj)) {
+    
     curr_R           <- R[tree$node_indices == which_terminal[i]]
     curr_groups      <- groups[tree$node_indices == which_terminal[i]]
     curr_group_sizes <- table(curr_groups)
@@ -429,14 +430,17 @@ simulate_mu_groups_hebart <- function(tree, R, groups, tau, k_1, k_2) {
     curr_mu          <- tree$tree_matrix[which_terminal[i], "mu"]
     
     # For the missing mus
-    if(length(curr_mu) < num_groups){
+    if(length(group_R_means) < num_groups){
       df_groups <- data.frame(groups = group_names)
       df_actual <- data.frame(groups = unique(curr_groups), 
-                              mus = group_R_means)
+                              mus = group_R_means, 
+                              n = as.vector(curr_group_sizes))
      df <- df_groups |> 
        dplyr::left_join(df_actual, by = "groups") |> 
-       dplyr::mutate(mus = ifelse(is.na(mus), mean(curr_R), mus))
+       dplyr::mutate(mus = ifelse(is.na(mus), mean(curr_R), mus),
+                     n = ifelse(is.na(n), 0, n))
      group_R_means <- df$mus
+     curr_group_sizes <- df$n
     }
     
     curr_group_mu <- stats::rnorm(num_groups,
