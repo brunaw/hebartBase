@@ -667,11 +667,12 @@ hebart <- function(
       } # End of accept if statement
       
       # Update mu whether tree accepted or not
-      curr_trees[[j]] <- simulate_mu_hebart2(
-        curr_trees[[j]],
-        current_partial_residuals,
-        M,
-        tau, k_1, k_2
+      curr_trees[[j]] <- simulate_mu_hebart(
+        tree = curr_trees[[j]],
+        R = current_partial_residuals,
+        #M,
+        tau, 
+        k_1, k_2
       )
       
       # Finally update the group means:
@@ -688,22 +689,25 @@ hebart <- function(
     
     # Calculate full set of predictions
     predictions <- get_group_predictions(curr_trees, X, groups, single_tree = num_trees == 1)
+    print(mean(predictions))
     # predictions <- get_predictions(curr_trees, X, single_tree = num_trees == 1)
     # S <- sum((y_scale - predictions)^2)
     
     # Update tau and sigma
-    tau <- update_tau(y, M, nu, lambda, groups, k_1, k_2)
+    tau <- update_tau(y_scale, M, nu, lambda, groups, k_1, k_2, 
+                      num_trees, last_trees = curr_trees)
     sigma <- 1 / sqrt(tau)
     
     
-    #   if(sample_k1){
-    #     # We can set these parameters more smartly
-    #     sampled_k1 <- update_k1(y, min_u, max_u, k_1, k_2, M,
-    #  nu, lambda, prior = k1_prior)
-    #
-    #     samples_k1[i] <- k_1
-    #     if(sampled_k1 != k_1){ samples_k1[i] <- k_1 <- sampled_k1 }
-    #   }
+    if(sample_k1){
+      # We can set these parameters more smartly
+      sampled_k1 <- update_k1(y = y_scale, min_u, max_u, k_1, k_2, num_trees, 
+                              last_trees = curr_trees, tau = tau, prior = k1_prior)
+      
+      samples_k1[i] <- k_1
+      if(sampled_k1 != k_1){ samples_k1[i] <- k_1 <- sampled_k1 }
+    }
+    print(k_1)
     
     # Get the overall log likelihood
     log_lik <- sum(stats::dnorm(y_scale, mean = predictions, sd = sigma, log = TRUE))

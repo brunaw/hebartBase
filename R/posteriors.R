@@ -200,6 +200,7 @@ simulate_mu_hebart2 <- function(tree, R, M, tau, k_1, k_2) {
     M_j <- M[tree$node_indices == which_terminal[i], , drop = FALSE]
     R_j <- R[tree$node_indices == which_terminal[i], drop = FALSE]
     Psi <- k_1 * tcrossprod(M_j) + diag(nj[i])
+    #Psi <- k_1 * tcrossprod(M_j) 
     ones <- rep(1, nj[i])
     Prec_bit <- t(ones)%*%solve(Psi, ones) + 1/k_2
     mean <- t(ones)%*%Psi%*%R_j / Prec_bit
@@ -475,75 +476,130 @@ simulate_mu_groups_hebart <- function(tree, R, groups, tau, k_1, k_2) {
 #' @param k_1 The current value of k1
 #' @param k_2 The current value of k2
 #' # Update tau --------------------------------------------------------------
-update_tau <- function(y, M, nu, lambda, num_groups, k_1, k_2) {
+update_tau <- function(y, M, nu, lambda, num_groups, k_1, k_2, num_trees, last_trees) {
   
+  W_tilde <- create_S(k_1, k_2, last_trees, num_trees)$W_tilde
+
   n <- length(y)
-  W_1 <- (k_2 * matrix(1, nrow = n, ncol = n)) + (k_1 * M %*% t(M)) + diag(n)
-  S <- t(y) %*% solve(W_1, y)
-  
-  # Update from maths in Github folder
+  #W_1 <- (k_2 * matrix(1, nrow = n, ncol = n)) + (k_1 * M %*% t(M)) + diag(n)
+  S <- t(y) %*% solve(W_tilde, y)
+
+  # New update
   tau <- stats::rgamma(1,
                        shape = (nu + n) / 2,
                        rate = (S + nu * lambda) / 2
   )
+
+    
+  # Update from maths in Github folder
+  # tau <- stats::rgamma(1,
+  #                      shape = (nu + n) / 2,
+  #                      rate = (S + nu * lambda) / 2
+  # )
   
   return(tau)
 }
 
+#' @name create_S
+#' @author Bruna Wundervald, \email{brunadaviesw@gmail.com}, Andrew Parnell
+#' @export
+#' @title Create S
+#' @description Creates the S matrix 
+#' @param k_1 The current value of k1
+#' @param k_2 The current value of k2
+#' @param last_trees The last trees 
+#' @param num_trees The number of trees
+
+create_S <- function(k_1, k_2, last_trees, num_trees){
+  # First tree
+  tree <-   last_trees[[1]]
+  which_terminal <- which(tree$tree_matrix[, "terminal"] == 1)
+  if(length(unique(tree$node_indices)) > 1){
+    S <- stats::model.matrix(~factor(tree$node_indices) - 1)
+  } else {
+    S <- matrix(rep(1, length(tree$node_indices)))
+  }
+  n_nodes <- length(unique(tree$node_indices))
+  
+  if(num_trees > 1){
+    for(i in 2:num_trees){
+      tree <-   last_trees[[i]]
+      which_terminal <- which(tree$tree_matrix[, "terminal"] == 1)
+      if(length(unique(tree$node_indices)) > 1){
+        Ss <- stats::model.matrix(~factor(tree$node_indices) - 1)
+      } else {
+        Ss <- matrix(rep(1, length(tree$node_indices)))
+      }
+  
+      S <- cbind(S, Ss)
+      n_nodes <- length(unique(tree$node_indices)) + n_nodes
+    } 
+  }
+  
+  W_tilde <- diag(nrow(S)) + ((k_1)/num_trees)*(S %*% t(S)) + ((k_2)/num_trees)*(S %*% t(S))
+  
+  return(list(S = S, n_nodes = n_nodes, W_tilde = W_tilde))
+}
+
  
-#' #' @name full_conditional_hebart
-#' #' @author Bruna Wundervald, \email{brunadaviesw@gmail.com}, Andrew Parnell
-#' #' @export
-#' #' @title Full conditional of all the data 
-#' #' @description A function that returns the full conditional value
-#' #' @param y The y vector
-#' #' @param k_1 The current value of k_1
-#' #' @param k_2 The current value of k_2
-#' #' @param M The group matrix
-#' #' @param nu The current value of nu
-#' #' @param lambda The current value of lambda
-#' #' 
-#' full_conditional_hebart <- function(y, k_1, k_2, M, nu, lambda) {
-#'   n = length(y)
-#'   W_1 <- (k_2 * matrix(1, nrow = n, ncol = n)) + (k_1 * M %*% t(M)) + diag(n)
-#'   # lgamma(n / 2 + nu / 2) = will be the same for either k_1
-#'   log_cond <- - 0.5 * logdet(W_1) - ((n / 2 + nu / 2) *
-#'     log(lambda / 2 + 0.5 * t(y) %*% solve(W_1, y)))
-#'   return(log_cond)
-#' }
-#' 
-#' #' @name update_k1
-#' #' @author Bruna Wundervald, \email{brunadaviesw@gmail.com}, Andrew Parnell
-#' #' @export
-#' #' @title Update k1
-#' #' @description Samples values from the posterior distribution of k1
-#' #' @param y The y vector
-#' #' @param min_u The lower bound of the sampled values of k1
-#' #' @param max_u The upper bound of the sampled values of k1
-#' #' @param k_1 The current value of k_1
-#' #' @param k_2 The current value of k_2
-#' #' @param M The group matrix
-#' #' @param nu The current value of nu
-#' #' @param lambda The current value of lambda
-#' #' @param prior Logical to decide whether to use a prior (set as 
-#' #' dweibull(1, 5) for now)
-#' #' 
-#' # Update k1 --------------------------------------------------------------
-#' 
-#' update_k1 <- function(y, min_u, max_u, k_1, k_2, M, nu, lambda, prior = TRUE){
-#'   new_k1    <- stats::runif(1, min = min_u, max = max_u)
-#'   current   <- full_conditional_hebart(y, k_1, k_2, M, nu, lambda)
-#'   candidate <- full_conditional_hebart(y, new_k1, k_2, M, nu, lambda)
-#'   
-#'   if(prior){
-#'     prior_current   <- stats::dweibull(k_1, shape = 1, 5, log = TRUE)
-#'     prior_candidate <- stats::dweibull(new_k1, shape = 1, 5, log = TRUE)
-#'     log.alpha <- (candidate - current) + (prior_candidate - prior_current) # ll is the log likelihood, lprior the log prior
-#'   } else {
-#'     log.alpha <- candidate - current
-#'   }
-#'   
-#'   accept <- log.alpha >= 0 || log.alpha >= log(stats::runif(1))
-#'   theta <- ifelse(accept, new_k1, k_1)
-#'   return(theta)
-#' }
+#' @name full_conditional_hebart
+#' @author Bruna Wundervald, \email{brunadaviesw@gmail.com}, Andrew Parnell
+#' @export
+#' @title Full conditional of all the data
+#' @description A function that returns the full conditional value
+#' @param y The y vector
+#' @param k_1 The current value of k_1
+#' @param k_2 The current value of k_2
+#' @param last_trees The last set of trees
+#' @param num_trees The number of trees
+#' @param tau The current value of tau
+#'
+full_conditional_hebart <- function(y, k_1, k_2, last_trees, num_trees, tau) {
+  # n = length(y)
+  # W_1 <- (k_2 * matrix(1, nrow = n, ncol = n)) + (k_1 * M %*% t(M)) + diag(n)
+  # # lgamma(n / 2 + nu / 2) = will be the same for either k_1
+  # log_cond <- - 0.5 * logdet(W_1) - ((n / 2 + nu / 2) *
+  #   log(lambda / 2 + 0.5 * t(y) %*% solve(W_1, y)))
+  
+  W_tilde <- create_S(k_1, k_2, last_trees, num_trees)$W_tilde
+  sd_y    <- sqrt((1/tau ) * W_tilde)
+  log_cond <-  sum(stats::dnorm(y, mean = 0, sd = diag(sd_y), log = TRUE))
+  #log_cond <- mvtnorm::dmvnorm(y, mean = rep(0, length(y)), sigma = sd_y, log = TRUE)
+  return(log_cond)
+}
+
+#' @name update_k1
+#' @author Bruna Wundervald, \email{brunadaviesw@gmail.com}, Andrew Parnell
+#' @export
+#' @title Update k1
+#' @description Samples values from the posterior distribution of k1
+#' @param y The y vector
+#' @param min_u The lower bound of the sampled values of k1
+#' @param max_u The upper bound of the sampled values of k1
+#' @param k_1 The current value of k_1
+#' @param k_2 The current value of k_2
+#' @param last_trees The last set of trees
+#' @param num_trees The number of trees
+#' @param tau The current value of tau
+#' @param prior Logical to decide whether to use a prior (set as
+#' dweibull(1, 5) for now)
+#'
+# Update k1 --------------------------------------------------------------
+
+update_k1 <- function(y, min_u, max_u, k_1, k_2, last_trees, num_trees, tau, prior = TRUE){
+  new_k1    <- stats::runif(1, min = min_u, max = max_u)
+  current   <- full_conditional_hebart(y, k_1, k_2, last_trees, num_trees, tau)
+  candidate <- full_conditional_hebart(y, new_k1, k_2, last_trees, num_trees, tau)
+
+  if(prior){
+    prior_current   <- stats::dweibull(k_1, shape = 1, 5, log = TRUE)
+    prior_candidate <- stats::dweibull(new_k1, shape = 1, 5, log = TRUE)
+    log.alpha <- (candidate - current) + (prior_candidate - prior_current) # ll is the log likelihood, lprior the log prior
+  } else {
+    log.alpha <- candidate - current
+  }
+
+  accept <- log.alpha >= 0 || log.alpha >= log(stats::runif(1))
+  theta <- ifelse(accept, new_k1, k_1)
+  return(theta)
+}

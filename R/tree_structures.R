@@ -161,7 +161,7 @@ grow_tree <- function(X, y, num_groups, curr_tree, node_min_size) {
   if(length(terminal_nodes) == 1){
     node_to_split <- terminal_nodes
   } else {
-  node_to_split <- sample(na.omit(terminal_nodes), 1, 
+  node_to_split <- sample(stats::na.omit(terminal_nodes), 1, 
                           prob = as.integer(terminal_node_size > node_min_size)
   ) 
   ##) # Choose which node to split, set prob to zero for any nodes that are too small

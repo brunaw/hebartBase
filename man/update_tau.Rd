@@ -4,7 +4,7 @@
 \alias{update_tau}
 \title{Update tau}
 \usage{
-update_tau(y, M, nu, lambda, num_groups, k_1, k_2)
+update_tau(y, M, nu, lambda, num_groups, k_1, k_2, num_trees, last_trees)
 }
 \arguments{
 \item{y}{The y vector}
