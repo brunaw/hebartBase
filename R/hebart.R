@@ -689,7 +689,7 @@ hebart <- function(
     
     # Calculate full set of predictions
     predictions <- get_group_predictions(curr_trees, X, groups, single_tree = num_trees == 1)
-    print(mean(predictions))
+    # print(mean(predictions))
     # predictions <- get_predictions(curr_trees, X, single_tree = num_trees == 1)
     # S <- sum((y_scale - predictions)^2)
     
@@ -707,7 +707,12 @@ hebart <- function(
       samples_k1[i] <- k_1
       if(sampled_k1 != k_1){ samples_k1[i] <- k_1 <- sampled_k1 }
     }
-    print(k_1)
+    # if(i > 100){
+    #   k_1 <- 0.5
+    # } else if(i > 200){
+    #   k_1 <- 1
+    # }
+    # print(k_1)
     
     # Get the overall log likelihood
     log_lik <- sum(stats::dnorm(y_scale, mean = predictions, sd = sigma, log = TRUE))

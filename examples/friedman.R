@@ -70,11 +70,11 @@ k1_pars        <-  list(sample_k1 = FALSE)
 hb_model <- hebart(formula,
                    data           = train,
                    group_variable = "group", 
-                   num_trees = 5,
+                   num_trees = 4,
                    priors = list(
                      alpha = 0.95, # Prior control list
                      beta = 2,
-                     k_1 = 1e-10,
+                     k_1 = 2,
                      k_2 = 0.2,
                      nu = 3,
                      lambda = 0.1
