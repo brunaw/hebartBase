@@ -581,6 +581,7 @@ hebart <- function(
     title = "Running rBART..."
   )
   
+  
   # Start the iterations loop
   for (i in 1:iter) {
     utils::setTxtProgressBar(pb, i)
@@ -602,7 +603,7 @@ hebart <- function(
         partial_trees <- curr_trees
         partial_trees[[j]] <- NULL # Blank out that element of the list
         current_partial_residuals <- y_scale -
-          get_group_predictions(partial_trees, X, groups,
+          get_group_predictions(trees  = partial_trees, X, groups,
                                 single_tree = num_trees == 2
           )
         # current_partial_residuals <- y_scale -
@@ -693,12 +694,6 @@ hebart <- function(
     # predictions <- get_predictions(curr_trees, X, single_tree = num_trees == 1)
     # S <- sum((y_scale - predictions)^2)
     
-    # Update tau and sigma
-    tau <- update_tau(y_scale, M, nu, lambda, groups, k_1, k_2, 
-                      num_trees, last_trees = curr_trees)
-    sigma <- 1 / sqrt(tau)
-    
-    
     if(sample_k1){
       # We can set these parameters more smartly
       sampled_k1 <- update_k1(y = y_scale, min_u, max_u, k_1, k_2, num_trees, 
@@ -707,6 +702,14 @@ hebart <- function(
       samples_k1[i] <- k_1
       if(sampled_k1 != k_1){ samples_k1[i] <- k_1 <- sampled_k1 }
     }
+    
+    # Update tau and sigma
+    tau <- update_tau(y_scale, M, nu, lambda, groups, k_1, k_2, 
+                      num_trees, last_trees = curr_trees)
+    sigma <- 1 / sqrt(tau)
+    
+    
+
     # if(i > 100){
     #   k_1 <- 0.5
     # } else if(i > 200){

@@ -65,6 +65,7 @@ get_group_predictions <- function(trees, X, groups, single_tree = FALSE) {
   group_names     <- unique(groups)
   num_groups      <- length(unique(groups))
   group_col_names <- paste0("mu", group_names)
+  group_col_names_all <- paste0("mu", groups)
   
   #group_col_names <- unique(paste0("mu", groups))
   
@@ -72,7 +73,7 @@ get_group_predictions <- function(trees, X, groups, single_tree = FALSE) {
   if (single_tree) {
     # Deal with just a single tree
     if (nrow(trees$tree_matrix) == 1) {
-      predictions <- trees$tree_matrix[1, group_col_names][groups]
+      predictions <- trees$tree_matrix[1, group_col_names][group_col_names_all]
     } else {
       # Loop through the node indices to get predictions
       predictions <- rep(NA, nrow(X))

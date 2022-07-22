@@ -431,8 +431,12 @@ simulate_mu_groups_hebart <- function(tree, R, groups, tau, k_1, k_2) {
     curr_mu          <- tree$tree_matrix[which_terminal[i], "mu"]
     
     # For the missing mus
-    if(length(group_R_means) < num_groups){
+    if(length(group_R_means) < num_groups | sum(curr_group_sizes == 0) > 0){
+      group_names <- as.character(group_names)
       df_groups <- data.frame(groups = group_names)
+      curr_groups <- as.character(curr_groups)
+      
+      curr_group_sizes <- curr_group_sizes[curr_group_sizes > 0]
       df_actual <- data.frame(groups = unique(curr_groups), 
                               mus = group_R_means, 
                               n = as.vector(curr_group_sizes))
@@ -563,8 +567,9 @@ full_conditional_hebart <- function(y, k_1, k_2, last_trees, num_trees, tau) {
   
   W_tilde <- create_S(k_1, k_2, last_trees, num_trees)$W_tilde
   sd_y    <- sqrt((1/tau ) * W_tilde)
-  log_cond <-  sum(stats::dnorm(y, mean = 0, sd = diag(sd_y), log = TRUE))
-  #log_cond <- mvtnorm::dmvnorm(y, mean = rep(0, length(y)), sigma = sd_y, log = TRUE)
+  #log_cond <-  sum(stats::dnorm(y, mean = 0, sd = diag(sd_y), log = TRUE))
+  log_cond <- mvtnorm::dmvnorm(y, mean = rep(0, length(y)), sigma = sd_y)
+  log_cond <- log(log_cond + 0.00000001)
   return(log_cond)
 }
 
