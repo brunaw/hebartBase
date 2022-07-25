@@ -62,14 +62,14 @@ hb_model
 
 pp <- predict_hebart(newX = test, new_groups = test$group,
                      hebart_posterior  = hb_model, type = "mean")
-sqrt(mean(pp - scale(test$y))^2) # 0.7106369
+sqrt(mean(pp - scale(test$y))^2) # 0.02213916
 cor(pp, scale(test$y)) #  0.7556438
 
 qplot(test$y, pp)
 
 # Comparison to BART --------------------------
 bart_0 = dbarts::bart2(formula, 
-                       n.trees = 15,
+                       #n.trees = 15,
                        data = train,
                        test = test, 
                        keepTrees = TRUE)
@@ -113,8 +113,42 @@ hb_model <- hebart(formula,
                    ))
 hb_model
 mean(hb_model$samples_k1)
-pp <- predict_hebart(newX = test, new_groups = test$group,
+pp <- predict_hebart(newX = matrix(test$X1, ncol = 1), new_groups = test$group,
                      hebart_posterior  = hb_model, type = "mean")
 sqrt(mean(pp - scale(test$y))^2) # 0.7106369
 cor(pp, scale(test$y)) #  0.7556438
-qplot(test$y, pp)
+qplot(test$y, pp) + geom_abline()
+
+# Check one particular observation
+which.max(pp) # 27
+test[27,]
+# y X1 group
+# 100 2.847725  9   337
+
+pp_27 <- predict_hebart(newX = matrix(test$X1[27], ncol = 1), new_groups = test$group[27],
+                        hebart_posterior  = hb_model, type = "all")
+pp_27[150] #-0.1461965
+
+# Now compare with the trees
+
+hb_model$trees[[150]][[1]]$tree_matrix
+# So if X = 9 and Group = 337, pred should be: 1.09
+hb_model$trees[[150]][[2]]$tree_matrix
+# Pred should be: -0.638
+hb_model$trees[[150]][[3]]$tree_matrix
+# 0.8431632
+1.09 - 0.538 + 0.843 # 1.395?
+
+# Observation 99 should be more or less identical in prediction
+# and is in the training set
+which(rownames(train) == "99") # 43
+train[43,]
+# 2.793536  8   337 
+pp_43 <- predict_hebart(newX = train[43,], new_groups = train$group[43],
+                        hebart_posterior  = hb_model, type = "all")
+pp_43[150]
+# -0.1461965
+1.09761346 -0.6387721 + 0.8431632
+
+
+

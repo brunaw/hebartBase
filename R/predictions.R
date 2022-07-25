@@ -80,12 +80,12 @@ get_group_predictions <- function(trees, X, groups, single_tree = FALSE) {
       unique_node_indices <- unique(trees$node_indices)
       # Get the node indices for the current X matrix
       curr_X_node_indices <- fill_tree_details(trees, X)$node_indices
-      actual_node_inices  <- unique(curr_X_node_indices)
+      actual_node_indices  <- unique(curr_X_node_indices)
       # Now loop through all node indices to fill in details
-      for (i in 1:length(actual_node_inices)) {
-        curr_groups <- groups[curr_X_node_indices == actual_node_inices[i]]
-        predictions[curr_X_node_indices == actual_node_inices[i]] <-
-          trees$tree_matrix[actual_node_inices[i], paste0("mu", curr_groups)]
+      for (i in 1:length(actual_node_indices)) {
+        curr_groups <- groups[curr_X_node_indices == actual_node_indices[i]]
+        predictions[curr_X_node_indices == actual_node_indices[i]] <-
+          trees$tree_matrix[actual_node_indices[i], paste0("mu", curr_groups)]
       }
     }
     # More here to deal with more complicated trees - i.e. multiple trees
