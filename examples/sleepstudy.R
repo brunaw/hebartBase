@@ -37,7 +37,7 @@ k1_pars        <-  list(sample_k1 = FALSE)
 hb_model <- hebart(formula,
                    data           = train,
                    group_variable = "group", 
-                   num_trees = 15,
+                   num_trees = 3,
                    priors = list(
                      alpha = 0.95, # Prior control list
                      beta = 2,
@@ -49,7 +49,6 @@ hb_model <- hebart(formula,
                    MCMC = list(iter = 1500, burn = 250, thin = 10)
                    )
 hb_model
-hb_model$trees
 # ------------------------------------------- #
 # HEBART result
 # ------------------------------------------- #
@@ -84,4 +83,38 @@ lme_ss <- lme4::lmer(y ~ X1 + (1|group), train)
 pp <- predict(lme_ss, test)
 sqrt(mean(pp - scale(test$y))^2) # 0.009018843
 cor(pp, scale(test$y)) # 0.8426536
+qplot(test$y, pp)
+
+
+# When we change k_1 --------------------------------
+k_1_pars        <-  list(sample_k1 = TRUE,
+                         min_u     = 0.1,
+                         max_u     = 0.5,
+                         k1_prior  = TRUE)
+
+# when num_trees = 5
+hb_model <- hebart(formula,
+                   data           = train,
+                   group_variable = "group", 
+                   num_trees = 3,
+                   priors = list(
+                     alpha = 0.95, # Prior control list
+                     beta = 2,
+                     k_1 = 1e-10,
+                     k_2 = 0.2,
+                     nu = 3,
+                     lambda = 0.1
+                   ), 
+                   k_1_pars       = k_1_pars,
+                   MCMC = list(
+                     iter = 250, # Number of iterations
+                     burn = 100, # Size of burn in
+                     thin = 1
+                   ))
+hb_model
+mean(hb_model$samples_k1)
+pp <- predict_hebart(newX = test, new_groups = test$group,
+                     hebart_posterior  = hb_model, type = "mean")
+sqrt(mean(pp - scale(test$y))^2) # 0.7106369
+cor(pp, scale(test$y)) #  0.7556438
 qplot(test$y, pp)

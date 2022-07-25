@@ -566,10 +566,11 @@ full_conditional_hebart <- function(y, k_1, k_2, last_trees, num_trees, tau) {
   #   log(lambda / 2 + 0.5 * t(y) %*% solve(W_1, y)))
   
   W_tilde <- create_S(k_1, k_2, last_trees, num_trees)$W_tilde
-  sd_y    <- sqrt((1/tau ) * W_tilde)
+  sig_y    <- (1/tau ) * W_tilde
   #log_cond <-  sum(stats::dnorm(y, mean = 0, sd = diag(sd_y), log = TRUE))
-  log_cond <- mvtnorm::dmvnorm(y, mean = rep(0, length(y)), sigma = sd_y)
-  log_cond <- log(log_cond + 0.00000001)
+  log_cond <- mvtnorm::dmvnorm(y, mean = rep(0, length(y)), 
+                               sigma = sig_y, log = TRUE)
+  #log_cond <- log(log_cond + 0.00000001)
   return(log_cond)
 }
 
