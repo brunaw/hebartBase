@@ -79,7 +79,7 @@ tree_full_conditional_hebart <- function(tree, R, k_1, k_2, M, nu, lambda) {
   for (i in 1:length(nj)) {
     M_j <- M[tree$node_indices == which_terminal[i], , drop = FALSE]
     R_j <- R[tree$node_indices == which_terminal[i], drop = FALSE]
-    W <- k_2 * matrix(1, nrow = nj[i], ncol = nj[i]) + k_1 * tcrossprod(M_j) + diag(nj[i])
+    W <- k_2 + k_1 * tcrossprod(M_j) + diag(nj[i])
     log_cond <- log_cond - 0.5 * logdet(W) + lgamma(nj[i] / 2 + nu / 2) - (nj[i] / 2 + nu / 2) *
       log(lambda / 2 + 0.5 * t(R_j) %*% solve(W, R_j))
     # There's also this term in the maths which I don't think is necessary

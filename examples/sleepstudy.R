@@ -127,28 +127,22 @@ test[27,]
 
 pp_27 <- predict_hebart(newX = matrix(test$X1[27], ncol = 1), new_groups = test$group[27],
                         hebart_posterior  = hb_model, type = "all")
-pp_27[150] #-0.1461965
+pp_27[150] # 1.302005
 
 # Now compare with the trees
-
 hb_model$trees[[150]][[1]]$tree_matrix
-# So if X = 9 and Group = 337, pred should be: 1.09
 hb_model$trees[[150]][[2]]$tree_matrix
-# Pred should be: -0.638
 hb_model$trees[[150]][[3]]$tree_matrix
-# 0.8431632
-1.09 - 0.538 + 0.843 # 1.395?
 
 # Observation 99 should be more or less identical in prediction
 # and is in the training set
 which(rownames(train) == "99") # 43
 train[43,]
 # 2.793536  8   337 
-pp_43 <- predict_hebart(newX = train[43,], new_groups = train$group[43],
+pp_43 <- predict_hebart(newX = matrix(train$X1[43], ncol = 1), new_groups = train$group[43],
                         hebart_posterior  = hb_model, type = "all")
 pp_43[150]
-# -0.1461965
-1.09761346 -0.6387721 + 0.8431632
+
 
 
 
