@@ -595,16 +595,25 @@ full_conditional_hebart <- function(y, k_1, k_2, last_trees, num_trees, tau) {
 # Update k1 --------------------------------------------------------------
 
 update_k1 <- function(y, min_u, max_u, k_1, k_2, last_trees, num_trees, tau, prior = TRUE){
-  new_k1    <- stats::runif(1, min = min_u, max = max_u)
+  # new_k1    <- stats::runif(1, min = min_u, max = max_u)
+  k1_sd <- 0.1
+  repeat {
+    # Proposal distribution
+    new_k1 <- k_1 + stats::rnorm(1, sd = k1_sd) 
+    if (new_k1 > 0)
+      break
+  }
+  log_rat <- pnorm(k_1, sd = k1_sd, log = TRUE) - pnorm(new_k1, sd = k1_sd, log = TRUE)
+  
   current   <- full_conditional_hebart(y, k_1, k_2, last_trees, num_trees, tau)
   candidate <- full_conditional_hebart(y, new_k1, k_2, last_trees, num_trees, tau)
 
   if(prior){
     prior_current   <- stats::dweibull(k_1, shape = 1, 5, log = TRUE)
     prior_candidate <- stats::dweibull(new_k1, shape = 1, 5, log = TRUE)
-    log.alpha <- (candidate - current) + (prior_candidate - prior_current) # ll is the log likelihood, lprior the log prior
+    log.alpha <- (candidate - current) + (prior_candidate - prior_current) + log_rat # ll is the log likelihood, lprior the log prior
   } else {
-    log.alpha <- candidate - current
+    log.alpha <- candidate - current + log_rat
   }
 
   accept <- log.alpha >= 0 || log.alpha >= log(stats::runif(1))

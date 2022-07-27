@@ -96,11 +96,11 @@ k_1_pars        <-  list(sample_k1 = TRUE,
 hb_model <- hebart(formula,
                    data           = train,
                    group_variable = "group", 
-                   num_trees = 3,
+                   num_trees = 15,
                    priors = list(
                      alpha = 0.95, # Prior control list
                      beta = 2,
-                     k_1 = 1e-10,
+                     k_1 = 0.5,
                      k_2 = 0.2,
                      nu = 3,
                      lambda = 0.1
@@ -112,7 +112,7 @@ hb_model <- hebart(formula,
                      thin = 1
                    ))
 hb_model
-mean(hb_model$samples_k1)
+plot(hb_model$samples_k1)
 pp <- predict_hebart(newX = matrix(test$X1, ncol = 1), new_groups = test$group,
                      hebart_posterior  = hb_model, type = "mean")
 sqrt(mean(pp - scale(test$y))^2) # 0.7106369
