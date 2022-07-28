@@ -88,14 +88,14 @@ qplot(test$y, pp)
 # When we change k_1 --------------------------------
 k_1_pars        <-  list(sample_k1 = TRUE,
                         min_u     = 0.1,
-                        max_u     = 5,
+                        max_u     = 15,
                         k1_prior  = TRUE)
 
 # when num_trees = 5
 hb_model <- hebart(formula,
                    data           = train,
                    group_variable = "group", 
-                   num_trees = 2,
+                   num_trees = 10,
                    priors = list(
                      alpha = 0.95, # Prior control list
                      beta = 2,
@@ -159,6 +159,11 @@ hb_model <- hebart(formula,
                      k_2 = 0.2,
                      nu = 3,
                      lambda = 0.1
+                   ),
+                   MCMC = list(
+                     iter = 1000, # Number of iterations
+                     burn = 100, # Size of burn in
+                     thin = 1
                    ))
 pp <- predict_hebart(df, df$group, hb_model, type = "mean")
 sqrt(mean(pp - scale(df$y))^2) # 0.021
@@ -176,7 +181,7 @@ k_1_pars        <-  list(sample_k1 = TRUE,
 hb_model <- hebart(formula,
                    data           = df,
                    group_variable = "group", 
-                   num_trees = 15,
+                   num_trees = 2,
                    priors = list(
                      alpha = 0.95, # Prior control list
                      beta = 2,
@@ -187,16 +192,14 @@ hb_model <- hebart(formula,
                    ), 
                    k_1_pars       = k_1_pars,
                    MCMC = list(
-                     iter = 250, # Number of iterations
+                     iter = 1000, # Number of iterations
                      burn = 100, # Size of burn in
                      thin = 1
                    ))
+
+hb_model
 pp <- predict_hebart(df, df$group, hb_model, type = "mean")
 sqrt(mean(pp - scale(df$y))^2) # 0.021
 cor(pp, scale(df$y)) # 0.79
 mean(hb_model$samples_k1)
-# good results finally; but not for sleepstudy
-# hb_model$sigma 
-# qplot(df$y, pp)
-
 #----------------------------------------------------

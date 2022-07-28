@@ -673,7 +673,7 @@ hebart <- function(
         R = current_partial_residuals,
         #M,
         tau, 
-        k_1, k_2
+        k_1, k_2, num_trees
       )
       
       # Finally update the group means:
@@ -681,7 +681,7 @@ hebart <- function(
         tree = curr_trees[[j]],
         R = current_partial_residuals,
         groups,
-        tau, k_1, k_2
+        tau, k_1, k_2, num_trees
       )
       
       # Check the trees

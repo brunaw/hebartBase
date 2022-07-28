@@ -66,7 +66,6 @@ sqrt(mean(pp - scale(test$y))^2) # 0.02213916
 cor(pp, scale(test$y)) #  0.7556438
 
 qplot(test$y, pp)
-
 # Comparison to BART --------------------------
 bart_0 = dbarts::bart2(formula, 
                        #n.trees = 15,
@@ -90,7 +89,7 @@ qplot(test$y, pp)
 k_1_pars        <-  list(sample_k1 = TRUE,
                          min_u     = 0.1,
                          max_u     = 0.5,
-                         k1_prior  = TRUE)
+                         k1_prior  = FALSE)
 
 # when num_trees = 5
 hb_model <- hebart(formula,
