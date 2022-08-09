@@ -121,7 +121,7 @@ simulate_mu_hebart <- function(tree, R, tau, k_1, k_2, num_trees) {
   # Now calculate mu values
   mu <- stats::rnorm(length(nj),
                      mean = (sumR / (k_1/num_trees)) / (nj / (k_1/num_trees) + 1 / k_2),
-                     sd = sqrt(1 / (tau * nj / (k_1/num_trees) + 1 / k_2))
+                     sd = sqrt(1 / (tau * (nj / (k_1/num_trees) + 1 / k_2)))
   )
   
   # Wipe all the old mus out for other nodes
@@ -371,7 +371,7 @@ update_k1 <- function(y, min_u, max_u, k_1, k_2, last_trees, num_trees, tau, pri
     if (new_k1 > 0)
       break
   }
-  log_rat <- pnorm(k_1, sd = k1_sd, log = TRUE) - pnorm(new_k1, sd = k1_sd, log = TRUE)
+  log_rat <- stats::pnorm(k_1, sd = k1_sd, log = TRUE) - stats::pnorm(new_k1, sd = k1_sd, log = TRUE)
   
   current   <- full_conditional_hebart(y, k_1, k_2, last_trees, num_trees, tau)
   candidate <- full_conditional_hebart(y, new_k1, k_2, last_trees, num_trees, tau)

@@ -55,17 +55,17 @@ hb_model
 # Formula:
 #   NULL 
 # 
-# Number of trees:         15 
+# Number of trees:         3 
 # Number of covariates:    1 
-# Training error (MSE):    0.6959745 
-# R Squared:               0.3040255 
+# Training error (MSE):    0.7093291 
+# R Squared:               0.2906709 
 
 pp <- predict_hebart(newX = test, new_groups = test$group,
                      hebart_posterior  = hb_model, type = "mean")
-sqrt(mean(pp - scale(test$y))^2) # 0.02213916
-cor(pp, scale(test$y)) #  0.7556438
+sqrt(mean(pp - scale(test$y))^2) # 0.6845038
+cor(pp, scale(test$y)) # 0.7556438
 
-qplot(test$y, pp)
+# qplot(test$y, pp)
 # Comparison to BART --------------------------
 bart_0 = dbarts::bart2(formula, 
                        #n.trees = 15,
@@ -88,14 +88,14 @@ qplot(test$y, pp)
 # When we change k_1 --------------------------------
 k_1_pars        <-  list(sample_k1 = TRUE,
                          min_u     = 0.1,
-                         max_u     = 0.5,
+                         max_u     = 1,
                          k1_prior  = FALSE)
 
 # when num_trees = 5
 hb_model <- hebart(formula,
                    data           = train,
                    group_variable = "group", 
-                   num_trees = 15,
+                   num_trees = 5,
                    priors = list(
                      alpha = 0.95, # Prior control list
                      beta = 2,
@@ -111,13 +111,153 @@ hb_model <- hebart(formula,
                      thin = 1
                    ))
 hb_model
+# Number of trees:         5 
+# Number of covariates:    1 
+# Training error (MSE):    0.2563552 
+# R Squared:               0.7436448 
 plot(hb_model$samples_k1)
 pp <- predict_hebart(newX = matrix(test$X1, ncol = 1), new_groups = test$group,
                      hebart_posterior  = hb_model, type = "mean")
-sqrt(mean(pp - scale(test$y))^2) # 0.7106369
-cor(pp, scale(test$y)) #  0.7556438
+sqrt(mean(pp - scale(test$y))^2) # 0.01975726 (much better)
+cor(pp, scale(test$y)) # 0.8391904
 qplot(test$y, pp) + geom_abline()
 
+
+# when num_trees = 15 and iter  = 250
+k_1_pars        <-  list(sample_k1 = TRUE,
+                         min_u     = 0.1,
+                         max_u     = 1,
+                         k1_prior  = FALSE)
+
+hb_model <- hebart(formula,
+                   data           = train,
+                   group_variable = "group", 
+                   num_trees = 15,
+                   priors = list(
+                     alpha = 0.95, # Prior control list
+                     beta = 2,
+                     k_1 = 0.5,
+                     k_2 = 0.2,
+                     nu = 3,
+                     lambda = 0.1
+                   ), 
+                   k_1_pars       = k_1_pars,
+                   MCMC = list(
+                     iter = 250, # Number of iterations
+                     burn = 50, # Size of burn in
+                     thin = 1
+                   ))
+hb_model
+# Number of trees:         15 
+# Number of covariates:    1 
+# Training error (MSE):    0.279567 
+# R Squared:               0.720433
+plot(hb_model$samples_k1)
+pp <- predict_hebart(newX = matrix(test$X1, ncol = 1), new_groups = test$group,
+                     hebart_posterior  = hb_model, type = "mean")
+sqrt(mean(pp - scale(test$y))^2) # 0.01617428 (much better)
+cor(pp, scale(test$y)) # 0.7890124
+qplot(test$y, pp) + geom_abline()
+
+# when num_trees = 15 and iter  = 750
+hb_model <- hebart(formula,
+                   data           = train,
+                   group_variable = "group", 
+                   num_trees = 15,
+                   priors = list(
+                     alpha = 0.95, # Prior control list
+                     beta = 2,
+                     k_1 = 0.5,
+                     k_2 = 0.2,
+                     nu = 3,
+                     lambda = 0.1
+                   ), 
+                   k_1_pars       = k_1_pars,
+                   MCMC = list(
+                     iter = 750, # Number of iterations
+                     burn = 250, # Size of burn in
+                     thin = 1
+                   ))
+hb_model
+# Number of trees:         15 
+# Number of covariates:    1 
+# Training error (MSE):    0.266179 
+# R Squared:               0.733821
+plot(hb_model$samples_k1)
+pp <- predict_hebart(newX = matrix(test$X1, ncol = 1), new_groups = test$group,
+                     hebart_posterior  = hb_model, type = "mean")
+sqrt(mean(pp - scale(test$y))^2) # 0.01617428 (much better)
+cor(pp, scale(test$y)) # 0.7890124
+qplot(test$y, pp) + geom_abline()
+
+
+# when num_trees = 15 and iter  = 250, and k_1 can vary more
+k_1_pars        <-  list(sample_k1 = TRUE,
+                         min_u     = 0.1,
+                         max_u     = 5,
+                         k1_prior  = FALSE)
+
+hb_model <- hebart(formula,
+                   data           = train,
+                   group_variable = "group", 
+                   num_trees = 15,
+                   priors = list(
+                     alpha = 0.95, # Prior control list
+                     beta = 2,
+                     k_1 = 0.5,
+                     k_2 = 0.2,
+                     nu = 3,
+                     lambda = 0.1
+                   ), 
+                   k_1_pars       = k_1_pars,
+                   MCMC = list(
+                     iter = 250, # Number of iterations
+                     burn = 50, # Size of burn in
+                     thin = 1
+                   ))
+hb_model
+# Number of trees:         15 
+# Number of covariates:    1 
+# Training error (MSE):    0.2967165 
+# R Squared:               0.7032835
+# plot(hb_model$samples_k1)
+# pp <- predict_hebart(newX = matrix(test$X1, ncol = 1), new_groups = test$group,
+#                      hebart_posterior  = hb_model, type = "mean")
+# sqrt(mean(pp - scale(test$y))^2) # 0.01617428 (much better)
+# cor(pp, scale(test$y)) # 0.7890124
+# qplot(test$y, pp) + geom_abline()
+
+hb_model <- hebart(formula,
+                   data           = train,
+                   group_variable = "group", 
+                   num_trees = 15,
+                   priors = list(
+                     alpha = 0.95, # Prior control list
+                     beta = 2,
+                     k_1 = 0.5,
+                     k_2 = 0.2,
+                     nu = 3,
+                     lambda = 0.1
+                   ), 
+                   k_1_pars       = k_1_pars,
+                   MCMC = list(
+                     iter = 1500, # Number of iterations
+                     burn = 250, # Size of burn in
+                     thin = 1
+                   ))
+hb_model
+# Number of trees:         15 
+# Number of covariates:    1 
+# Training error (MSE):    0.2818765 
+# R Squared:               0.7181235 
+plot(hb_model$samples_k1)
+pp <- predict_hebart(newX = matrix(test$X1, ncol = 1), new_groups = test$group,
+                     hebart_posterior  = hb_model, type = "mean")
+sqrt(mean(pp - scale(test$y))^2) # 0.01633317
+cor(pp, scale(test$y)) # 0.6996391
+qplot(test$y, pp) + geom_abline()
+
+#-------------------------------------------------
 # Check one particular observation
 which.max(pp) # 27
 test[27,]

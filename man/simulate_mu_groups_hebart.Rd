@@ -4,7 +4,7 @@
 \alias{simulate_mu_groups_hebart}
 \title{Simulate mu_js}
 \usage{
-simulate_mu_groups_hebart(tree, R, groups, tau, k_1, k_2)
+simulate_mu_groups_hebart(tree, R, groups, tau, k_1, k_2, num_trees)
 }
 \arguments{
 \item{tree}{The current tree}
@@ -18,12 +18,11 @@ simulate_mu_groups_hebart(tree, R, groups, tau, k_1, k_2)
 \item{k_1}{The  current value of k_1}
 
 \item{k_2}{The  current value of k_2}
+
+\item{num_trees}{The  number of trees}
 }
 \description{
 Simulates mu_j for each group
-}
-\details{
-
 }
 \author{
 Bruna Wundervald, \email{brunadaviesw@gmail.com}, Andrew Parnell

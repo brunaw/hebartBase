@@ -114,7 +114,7 @@ hb_model
 mean(hb_model$samples_k1)
 
 pp <- predict_hebart(test$X, group_test, hb_model, type = "mean")
-sqrt(mean(pp - scale(test$y))^2) # 0.021
+sqrt(mean(pp - scale(test$y))^2) # 0.05077673
 cor(pp, scale(test$y)) # 0.021
 hb_model$sigma 
 qplot(test$y, pp)
@@ -169,13 +169,13 @@ pp <- predict_hebart(df, df$group, hb_model, type = "mean")
 sqrt(mean(pp - scale(df$y))^2) # 0.021
 cor(pp, scale(df$y)) # 0.7584812
 # hb_model$sigma 
-# qplot(df$y, pp)
+qplot(df$y, pp)
 #----------------------------------------------------
 # When we change k_1 --------------------------------
 k_1_pars        <-  list(sample_k1 = TRUE,
                          min_u     = 0.1,
                          max_u     = 15,
-                         k1_prior  = TRUE)
+                         k1_prior  = FALSE)
 
 # when num_trees = 5
 hb_model <- hebart(formula,

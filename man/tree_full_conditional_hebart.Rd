@@ -25,54 +25,6 @@ tree_full_conditional_hebart(tree, R, k_1, k_2, M, nu, lambda)
 A function that returns current tree full conditional
 distribution value
 }
-\details{
-#' @name tree_full_conditional
-#' @author Bruna Wundervald, \email{brunadaviesw@gmail.com}, Andrew Parnell
-#' @export
-#' @title Tree full conditional
-#' @description A function that returns current tree full conditional 
-#' distribution value
-#' @param tree The current tree
-#' @param R The corresponding residuals for the tree
-#' @param tau The current value of tau
-#' @param tau_mu The current value of tau_mu
-#' 
-# Get complete conditions -------------------------------------------------
-
-tree_full_conditional <- function(tree, R, tau, tau_mu) {
-  # Function to compute log full conditional distirbution for an individual tree
-  # R is a vector of partial residuals
-  
-  # Need to calculate log complete conditional, involves a sum over terminal nodes
-  
-  # First find which rows are terminal nodes
-  which_terminal <- which(tree$tree_matrix[, "terminal"] == 1)
-  
-  # Get node sizes for each terminal node
-  nj <- tree$tree_matrix[which_terminal, "node_size"]
-  
-  # Get sum of residuals and sum of residuals squared within each terminal node
-  sumRsq_j <- stats::aggregate(R, by = list(tree$node_indices), function(x) sum(x^2))[, 2]
-  S_j      <- stats::aggregate(R, by = list(tree$node_indices), sum)[, 2]
-  
-  # Now calculate the log posterior
-  # log_post = 0.5 * length(R) * log(tau) + sum(0.5 * log( tau_mu / (tau_mu + nj * tau)) -
-  #   0.5 * tau * (sumRsq_j - tau * S_j^2 / (tau_mu + nj * tau) ) )
-  log_post <- 0.5 * length(R) * log(tau) +
-    0.5 * (sum(log(tau_mu / (tau_mu + nj * tau))) -
-             tau * sum(sumRsq_j) +
-             tau^2 * sum(S_j^2 / (tau_mu + nj * tau)))
-  return(log_post)
-  #
-  # New Mahdi version - slower
-  # P1 = 0.5 * length(R) * log(tau)
-  # P2 = 0.5 * sum( log( tau_mu / (tau_mu + nj * tau)))
-  # P3 = -0.5 * tau * sum( sumRsq_j )
-  # P4 = 0.5 * (tau^2) * sum ( (S_j^2) / (tau_mu + nj * tau) )
-  #
-  # return(P1 + P2 + P3 + P4)
-}
-}
 \author{
 Bruna Wundervald, \email{brunadaviesw@gmail.com}, Andrew Parnell
 }
