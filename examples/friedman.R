@@ -25,7 +25,7 @@ train <- data.frame(y, X, group)
 group_variable <-  "group"
 formula        <- y ~ X1 + X2 + X3 + X4 + X5
 
-num_trees <- 10
+num_trees <- 4
 pars   <- list(
   alpha = 0.95, beta = 2,
   nu = 3, lambda = 0.1,

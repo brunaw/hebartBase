@@ -25,7 +25,7 @@ groups      <- train$group
 # Model parameters -----------------------------------
 group_variable <-  "group"
 formula <- y ~ X1
-num_trees <- 10
+num_trees <- 1
 pars   <- list(
   alpha = 0.95, beta = 2,
   nu = 3, lambda = 0.1,
@@ -50,19 +50,20 @@ hb_model <- hebart(formula,
                      scale_tau_phi = 1
                    ), 
                    inits = list(tau = 1,
-                                tau_phi = 1),
+                                tau_phi = 10000),
                    MCMC = list(iter = 1500, 
                                burn = 250, 
                                thin = 1,
-                               tau_phi_sd = 2)
+                               tau_phi_sd = 0)
                    )
 hb_model
 
 pp <- predict_hebart(newX = test, new_groups = test$group,
-                     hebart_posterior  = hb_model, type = "mean")
+                     hebart_posterior  = hb_model, 
+                     type = "mean")
 
-sqrt(mean(pp - test$y)^2) # 27.40639 - 20 trees
-cor(pp, test$y) # 0.6915753 
+sqrt(mean(pp - test$y)^2) 
+cor(pp, test$y)
 qplot(test$y, pp) + geom_abline()
 qplot(1:length(hb_model$sigma), hb_model$sigma)
 qplot(1:length(hb_model$sigma), hb_model$sigma_phi)
@@ -77,7 +78,7 @@ bart_0 = dbarts::bart2(formula,
                        keepTrees = TRUE)
 pp <- bart_0$yhat.test.mean
 sqrt(mean(pp - test$y)^2) # 5.512617 - 100 trees
-cor(pp, test$y) #   0.4986417
+cor(pp, test$y) #   0.4983258
 qplot(test$y, pp) + geom_abline()
 
 # Comparison to LME --------------------------

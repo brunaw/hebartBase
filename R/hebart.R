@@ -56,7 +56,7 @@ hebart <- function(formula,
   names_x <- all.vars(formula_int[[3]])
 
   # Used in create_S to avoid error with stumps
-  mod.mat <- function(f) {
+  mod.mat <<- function(f) {
     if(nlevels(f) == 1) {
       m <- matrix(1, nrow = length(f), ncol = 1)
     } else {
@@ -294,9 +294,10 @@ hebart <- function(formula,
   # RMSE calculation
   pred <- predict_hebart(X, groups, result, type = "mean")
   mse <- mean((pred - y)^2)
+  rmse <- sqrt(mse)
   r.squared <- 1 - mse / stats::var(y)
 
-  result$mse <- mse
+  result$rmse <- rmse
   result$r.squared <- r.squared
   result$num_variables <- length(names_x)
 
