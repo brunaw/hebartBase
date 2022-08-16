@@ -10,7 +10,7 @@ library(magrittr)
 library(ggplot2)
 library(lme4)
 library(tidymodels)
-library(hebartBase)
+# library(hebartBase)
 
 # Dataset split  ------------------------------------
 set.seed(2022)
@@ -22,48 +22,48 @@ test        <- testing(data_split)
 groups      <- train$group
 # Model parameters -----------------------------------
 group_variable <-  "group"
-formula        <- y ~ X1
-pars           <- list(
-  alpha = 0.95, beta = 2, k_1 = 0.05,
-  k_2 = 1, nu = 3, lambda = 0.1
+formula <- y ~ X1
+num_trees <- 5
+pars   <- list(
+  alpha = 0.95, beta = 2,
+  nu = 3, lambda = 0.1,
+  tau_mu = 16 * num_trees,
+  shape_tau_phi = 0.5,
+  scale_tau_phi = 1 # These give mean ~2 and sd ~4
 )
 
-# 1. Without varying k1: 
-k1_pars        <-  list(sample_k1 = FALSE)
-
 # Running the model ----------------------------------
-# when num_trees = 15
 
 hb_model <- hebart(formula,
-                   data           = train,
+                   data = train,
                    group_variable = "group", 
-                   num_trees = 3,
+                   num_trees = num_trees,
                    priors = list(
                      alpha = 0.95, # Prior control list
                      beta = 2,
-                     k_1 = 1e-10,
-                     k_2 = 3,
                      nu = 2,
-                     lambda = 0.1
+                     lambda = 0.1,
+                     tau_mu = 16 * num_trees,
+                     shape_tau_phi = 0.5,
+                     scale_tau_phi = 1
                    ), 
-                   MCMC = list(iter = 1500, burn = 250, thin = 10)
+                   inits = list(tau = 1,
+                                tau_phi = 1000),
+                   MCMC = list(iter = 1500, 
+                               burn = 250, 
+                               thin = 1)
                    )
 hb_model
-# ------------------------------------------- #
-# HEBART result
-# ------------------------------------------- #
-# Formula:
-#   NULL 
-# 
-# Number of trees:         3 
-# Number of covariates:    1 
-# Training error (MSE):    0.7093291 
-# R Squared:               0.2906709 
 
 pp <- predict_hebart(newX = test, new_groups = test$group,
                      hebart_posterior  = hb_model, type = "mean")
-sqrt(mean(pp - scale(test$y))^2) # 0.6845038
-cor(pp, scale(test$y)) # 0.7556438
+
+sqrt(mean d(pp - scale(test$y))^2) 
+# 0.5930879 with 3 trees
+cor(pp, scale(test$y)) 
+# 0.6580557 with 3 trees
+qplot(pp, scale(test$y)) + geom_abline()
+stop()
 
 # qplot(test$y, pp)
 # Comparison to BART --------------------------

@@ -1,5 +1,5 @@
 # Tree conditional for HEBART
-#' @name tree_full_conditional_hebart
+#' @name full_conditional_hebart
 #' @author Bruna Wundervald, \email{brunadaviesw@gmail.com}, Andrew Parnell
 #' @export
 #' @title Tree full conditional for hebart
@@ -7,19 +7,17 @@
 #' distribution value
 #' @param tree The current tree
 #' @param R The corresponding residuals for the tree
-#' @param k_1 The current value of k_1
-#' @param k_2 The current value of k_2
+#' @param num_trees The number of trees
+#' @param tau The current value of tau
+#' @param tau_phi The current value of tau_phi
+#' @param tau_mu The current value of tau_mu
 #' @param M The group matrix
-#' @param nu The current value of nu
-#' @param lambda The current value of lambda
-tree_full_conditional_hebart <- function(tree, R, k_1, k_2, M, nu, lambda) {
+full_conditional_hebart <- function(tree, R, num_trees, tau, tau_phi, tau_mu, M) {
   # Function to compute log full conditional distribution for an individual tree
   # R is a vector of partial residuals
   
   # hbeart version is
-  # log_cond = sum( log(gamma(n_j/2 + alpha)) - 0.5 * logdet(W) - (n_j/2 + alpha) *
-  #    log(beta + 0.5 * t(R_j)%*%solve(W, R_j) )
-  # where now W = k_2 * ones %*% t(ones) + k_1 * M %*% t(M) + diag(n_j)
+  # log_cond = sum (dmv(R, 0, Omega_R, log = TRUE) )
   # where M is the group allocation matrix.
   
   # First find which rows are terminal nodes
@@ -32,11 +30,11 @@ tree_full_conditional_hebart <- function(tree, R, k_1, k_2, M, nu, lambda) {
   for (i in 1:length(nj)) {
     M_j <- M[tree$node_indices == which_terminal[i], , drop = FALSE]
     R_j <- R[tree$node_indices == which_terminal[i], drop = FALSE]
-    W <- k_2 + k_1 * tcrossprod(M_j) + diag(nj[i])
-    log_cond <- log_cond - 0.5 * logdet(W) + lgamma(nj[i] / 2 + nu / 2) - (nj[i] / 2 + nu / 2) *
-      log(lambda / 2 + 0.5 * t(R_j) %*% solve(W, R_j))
-    # There's also this term in the maths which I don't think is necessary
-    # - 0.5 * nj[i] * log(2 * pi)
+    Omega_R <- diag(nj[i])/tau + tcrossprod(M_j)/(num_trees * tau_phi) + 
+      matrix(tau_mu, ncol = nj[i], nrow = nj[i])
+    log_cond <- log_cond + mvnfast::dmvn(
+      R_j, rep(0, nj[i]), Omega_R, log = TRUE
+    )
   }
   
   return(log_cond)
@@ -100,12 +98,11 @@ get_tree_prior <- function(tree, alpha, beta) {
 #' @param tree The current tree
 #' @param R The corresponding residuals for the tree
 #' @param tau The  current value of tau
-#' @param k_1 The  current value of k_1
-#' @param k_2 The  current value of k_2
-#' @param num_trees The  number of trees
-#'
-# Simulate_mu -------------------------------------------------------------
-simulate_mu_hebart <- function(tree, R, tau, k_1, k_2, num_trees) {
+#' @param tau_phi The current value of tau_phi
+#' @param tau_mu The value of tau_mu
+#' @param M The value of M
+#' @param num_trees The number of trees
+simulate_mu_hebart <- function(tree, R, tau, tau_phi, tau_mu, M, num_trees) {
   
   # Simulate mu values for a given tree
   
@@ -115,59 +112,22 @@ simulate_mu_hebart <- function(tree, R, tau, k_1, k_2, num_trees) {
   # Get node sizes for each terminal node
   nj <- tree$tree_matrix[which_terminal, "node_size"]
   
-  # Get sum of residuals in each terminal node
-  sumR <- stats::aggregate(R, by = list(tree$node_indices), sum)[, 2]
-  
-  # Now calculate mu values
-  mu <- stats::rnorm(length(nj),
-                     mean = (sumR / (k_1/num_trees)) / (nj / (k_1/num_trees) + 1 / k_2),
-                     sd = sqrt(1 / (tau * (nj / (k_1/num_trees) + 1 / k_2)))
-  )
-  
-  # Wipe all the old mus out for other nodes
-  tree$tree_matrix[, "mu"] <- NA
-  
-  # Put in just the ones that are useful
-  tree$tree_matrix[which_terminal, "mu"] <- mu
-  
-  return(tree)
-}
-
-simulate_mu_hebart2 <- function(tree, R, M, tau, k_1, k_2) {
-  
-  # Simulate mu values for a given tree
-  
-  # this is the marginalised mu version from
-  # https://bookdown.org/connect/#/apps/56e67516-559f-4d69-91df-54702fbc2206/access
-  
-  # First find which rows are terminal nodes
-  which_terminal <- which(tree$tree_matrix[, "terminal"] == 1)
-  
-  # Get node sizes for each terminal node
-  nj <- tree$tree_matrix[which_terminal, "node_size"]
-  
-  # Wipe all the old mus out for other nodes
-  tree$tree_matrix[, "mu"] <- NA
-  
-  # Loop through terminal nodes to get values
   for (i in 1:length(nj)) {
     M_j <- M[tree$node_indices == which_terminal[i], , drop = FALSE]
     R_j <- R[tree$node_indices == which_terminal[i], drop = FALSE]
-    Psi <- k_1 * tcrossprod(M_j) + diag(nj[i])
-    #Psi <- k_1 * tcrossprod(M_j) 
+    Psi_R <- diag(nj[i])/tau + tcrossprod(M_j)/(num_trees*tau_phi)
     ones <- rep(1, nj[i])
-    Prec_bit <- t(ones)%*%solve(Psi, ones) + 1/k_2
-    mean <- t(ones)%*%Psi%*%R_j / Prec_bit
+    Prec_bit <- t(ones)%*%solve(Psi_R, ones) + tau_mu
+    mean <- t(ones)%*%solve(Psi_R, R_j) / Prec_bit
     tree$tree_matrix[which_terminal[i], "mu"] <- stats::rnorm(1,
                                                               mean,
-                                                              sd = 1/sqrt(tau*Prec_bit))
+                                                              sd = 1/sqrt(Prec_bit))
   }
   
   return(tree)
 }
 
-
-#' @name simulate_mu_groups_hebart
+#' @name simulate_phi_hebart
 #' @author Bruna Wundervald, \email{brunadaviesw@gmail.com}, Andrew Parnell
 #' @export
 #' @title Simulate mu_js
@@ -175,17 +135,16 @@ simulate_mu_hebart2 <- function(tree, R, M, tau, k_1, k_2) {
 #' @param tree The current tree
 #' @param R The corresponding residuals for the tree
 #' @param groups The groups specification
-#' @param tau The  current value of tau
-#' @param k_1 The  current value of k_1
-#' @param k_2 The  current value of k_2
+#' @param tau The current value of tau
+#' @param tau_phi The current value of tau_phi
+#' @param M The group allocation matrix
 #' @param num_trees The  number of trees
-simulate_mu_groups_hebart <- function(tree, R, groups, tau, k_1, k_2, num_trees) {
+simulate_phi_hebart <- function(tree, R, groups, tau, tau_phi, M, num_trees) {
   
   # Simulate the group mu values for a given tree
-  
-    group_names     <- unique(groups)
-    num_groups      <- length(unique(groups))
-    group_col_names <- paste0("mu", group_names)
+  group_names <- unique(groups)
+  num_groups <- length(unique(groups))
+  group_col_names <- paste0("phi", group_names)
 
   # First find which rows are terminal nodes
   which_terminal <- which(tree$tree_matrix[, "terminal"] == 1)
@@ -198,74 +157,45 @@ simulate_mu_groups_hebart <- function(tree, R, groups, tau, k_1, k_2, num_trees)
   # Get the group means in each terminal node
   # Doing this with loops but probably can be faster
   for (i in 1:length(nj)) {
-    
-    curr_R           <- R[tree$node_indices == which_terminal[i]]
-    curr_groups      <- groups[tree$node_indices == which_terminal[i]]
-    curr_group_sizes <- table(curr_groups)
-    group_R_means    <- stats::aggregate(curr_R, by = list(curr_groups), "sum")[, 2]
-    curr_mu          <- tree$tree_matrix[which_terminal[i], "mu"]
-    
-    # For the missing mus
-    if(length(group_R_means) < num_groups | sum(curr_group_sizes == 0) > 0){
-      group_names <- as.character(group_names)
-      df_groups <- data.frame(groups = group_names)
-      curr_groups <- as.character(curr_groups)
-      
-      curr_group_sizes <- curr_group_sizes[curr_group_sizes > 0]
-      df_actual <- data.frame(groups = unique(curr_groups), 
-                              mus = group_R_means, 
-                              n = as.vector(curr_group_sizes))
-     df <- df_groups |> 
-       dplyr::left_join(df_actual, by = "groups") |> 
-       dplyr::mutate(mus = ifelse(is.na(mus), mean(curr_R), mus),
-                     n = ifelse(is.na(n), 0, n))
-     group_R_means <- df$mus
-     curr_group_sizes <- df$n
-    }
-    
-    curr_group_mu <- stats::rnorm(num_groups,
-                                  mean = (curr_mu / (k_1/num_trees) + group_R_means) / (curr_group_sizes + 1 / (k_1/num_trees)),
-                                  sd = sqrt(1 / (curr_group_sizes + 1 / (k_1/num_trees)))
-    )
-
-    #tree$tree_matrix[which_terminal[i], paste0("mu", 1:num_groups)] <- curr_group_mu
-    tree$tree_matrix[which_terminal[i], sort(group_col_names)] <- curr_group_mu
+    curr_R <- R[tree$node_indices == which_terminal[i]]
+    curr_mu <- tree$tree_matrix[which_terminal[i], "mu"]
+    curr_M <- M[tree$node_indices == which_terminal[i], , drop = FALSE]
+    Prec_bit <- tau*crossprod(curr_M) + num_trees * tau_phi * diag(num_groups)
+    mean <- solve(Prec_bit, tau * t(curr_M)%*%curr_R + rep(num_trees * tau_phi * curr_mu,
+                                                           num_groups))
+    tree$tree_matrix[which_terminal[i], 
+                     sort(group_col_names)] <- mvnfast::rmvn(1,
+                                                             mu = mean,
+                                                             sigma = solve(Prec_bit))
     
   }
   
   # Wipe all the old mu groups out for other nodes
-  which_non_terminal <- which(tree$tree_matrix[, "terminal"] == 0)
-  tree$tree_matrix[which_non_terminal,  sort(group_col_names)] <- NA
+  # which_non_terminal <- which(tree$tree_matrix[, "terminal"] == 0)
+  # tree$tree_matrix[which_non_terminal,  sort(group_col_names)] <- NA
   
   return(tree)
 }
 
 
-#' # Simulate mu groups HEBART -----------------------------------------------
+#' # Simulate tau -----------------------------------------------
 #' @name update_tau
 #' @author Bruna Wundervald, \email{brunadaviesw@gmail.com}, Andrew Parnell
 #' @export
 #' @title Update tau
 #' @description Samples values from the posterior distribution of tau
 #' @param y The y vector
-#' @param nu The current value of nu
-#' @param M The current group model matrix
-#' @param lambda The current value of lambda
-#' @param num_groups The number of groups
-#' @param k_1 The current value of k1
-#' @param k_2 The current value of k2
-#' # Update tau --------------------------------------------------------------
-update_tau <- function(y, M, nu, lambda, num_groups, k_1, k_2, num_trees, last_trees) {
+#' @param predictions The current set of predictions
+#' @param nu The value of nu
+#' @param lambda The value of lambda
+update_tau <- function(y, predictions, nu, lambda) {
   
-  W_tilde <- create_S(k_1, k_2, last_trees, num_trees)$W_tilde
+  # Sum of squared predictions
+  S <- sum((y - predictions)^2)
 
-  n <- length(y)
-  #W_1 <- (k_2 * matrix(1, nrow = n, ncol = n)) + (k_1 * M %*% t(M)) + diag(n)
-  S <- t(y) %*% solve(W_tilde, y)
-
-  # New update
+  # Update
   tau <- stats::rgamma(1,
-                       shape = (nu + n) / 2,
+                       shape = (nu + length(y)) / 2,
                        rate = (S + nu * lambda) / 2
   )
   
@@ -277,114 +207,86 @@ update_tau <- function(y, M, nu, lambda, num_groups, k_1, k_2, num_trees, last_t
 #' @export
 #' @title Create S
 #' @description Creates the S matrix 
-#' @param k_1 The current value of k1
-#' @param k_2 The current value of k2
-#' @param last_trees The last trees 
-#' @param num_trees The number of trees
-
-create_S <- function(k_1, k_2, last_trees, num_trees){
-  # First tree
-  tree <-   last_trees[[1]]
-  which_terminal <- which(tree$tree_matrix[, "terminal"] == 1)
-  if(length(unique(tree$node_indices)) > 1){
-    S <- stats::model.matrix(~factor(tree$node_indices) - 1)
-  } else {
-    S <- matrix(rep(1, length(tree$node_indices)))
-  }
-  n_nodes <- length(unique(tree$node_indices))
+#' @param curr_trees The current set of trees
+#' @param groups if NULL just creates the terminal node matrix. If present 
+#' allocates it into groups too
+create_S <- function(curr_trees, groups = NULL){
+  browser()
   
-  if(num_trees > 1){
-    for(i in 2:num_trees){
-      tree <-   last_trees[[i]]
-      which_terminal <- which(tree$tree_matrix[, "terminal"] == 1)
-      if(length(unique(tree$node_indices)) > 1){
-        Ss <- stats::model.matrix(~factor(tree$node_indices) - 1)
-      } else {
-        Ss <- matrix(rep(1, length(tree$node_indices)))
-      }
-  
-      S <- cbind(S, Ss)
-      n_nodes <- length(unique(tree$node_indices)) + n_nodes
-    } 
+  if(is.null(groups)) {
+    
   }
   
-  W_tilde <- diag(nrow(S)) + ((k_1)/num_trees)*(S %*% t(S)) + ((k_2)/num_trees)*(S %*% t(S))
+  # Type = 1 means find the matrix at the group level
   
-  return(list(S = S, n_nodes = n_nodes, W_tilde = W_tilde))
+  if(type == 1) {
+    # First tree
+    tree <- curr_trees[[1]]
+    which_terminal <- which(tree$tree_matrix[, "terminal"] == 1)
+    if(length(unique(tree$node_indices)) > 1){
+      S <- stats::model.matrix(~factor(tree$node_indices) - 1)
+    } else {
+      S <- matrix(rep(1, length(tree$node_indices)))
+    }
+    n_nodes <- length(unique(tree$node_indices))
+    
+    if(num_trees > 1){
+      for(i in 2:num_trees){
+        tree <-   last_trees[[i]]
+        which_terminal <- which(tree$tree_matrix[, "terminal"] == 1)
+        if(length(unique(tree$node_indices)) > 1){
+          Ss <- stats::model.matrix(~factor(tree$node_indices) - 1)
+        } else {
+          Ss <- matrix(rep(1, length(tree$node_indices)))
+        }
+        
+        S <- cbind(S, Ss)
+        n_nodes <- length(unique(tree$node_indices)) + n_nodes
+      } 
+    }
+  }
+
+  return(S)
 }
 
- 
-#' @name full_conditional_hebart
+#' @name update_tau_phi
 #' @author Bruna Wundervald, \email{brunadaviesw@gmail.com}, Andrew Parnell
 #' @export
-#' @title Full conditional of all the data
-#' @description A function that returns the full conditional value
-#' @param y The y vector
-#' @param k_1 The current value of k_1
-#' @param k_2 The current value of k_2
-#' @param last_trees The last set of trees
-#' @param num_trees The number of trees
+#' @title Update tau_phi
+#' @description Samples values from the posterior distribution of tau_phi
+#' @param y The response vector
+#' @param S1 The group level node allocation matrix
+#' @param S2 The terminal node allocation
 #' @param tau The current value of tau
-#'
-full_conditional_hebart <- function(y, k_1, k_2, last_trees, num_trees, tau) {
-  # n = length(y)
-  # W_1 <- (k_2 * matrix(1, nrow = n, ncol = n)) + (k_1 * M %*% t(M)) + diag(n)
-  # # lgamma(n / 2 + nu / 2) = will be the same for either k_1
-  # log_cond <- - 0.5 * logdet(W_1) - ((n / 2 + nu / 2) *
-  #   log(lambda / 2 + 0.5 * t(y) %*% solve(W_1, y)))
+#' @param tau_phi The current value of tau_phi
+#' @param tau_mu The current value of tau_mu
+#' @param num_trees The number of trees
+#' @param shape_tau_phi Weibull shape parameter
+#' @param scale_tau_phi Weibull scale parameter
+update_tau_phi <- function(y, S1, S2, tau_phi, tau_mu, tau, shape_tau_phi, scale_tau_phi){
+  # new_tau_phi <- stats::runif(1, min = min_u, max = max_u)
+  tau_phi_sd <- 0.1
   
-  W_tilde <- create_S(k_1, k_2, last_trees, num_trees)$W_tilde
-  sig_y    <- (1/tau ) * W_tilde
-  #log_cond <-  sum(stats::dnorm(y, mean = 0, sd = diag(sd_y), log = TRUE))
-  # log_cond <- mvtnorm::dmvnorm(y, mean = rep(0, length(y)), 
-  #                              sigma = sig_y, log = TRUE)
-  log_cond <- mvnfast::dmvn(y, mu = rep(0, length(y)), 
-                               sigma = sig_y, log = TRUE)
-  #log_cond <- log(log_cond + 0.00000001)
-  return(log_cond)
-}
-
-#' @name update_k1
-#' @author Bruna Wundervald, \email{brunadaviesw@gmail.com}, Andrew Parnell
-#' @export
-#' @title Update k1
-#' @description Samples values from the posterior distribution of k1
-#' @param y The y vector
-#' @param min_u The lower bound of the sampled values of k1
-#' @param max_u The upper bound of the sampled values of k1
-#' @param k_1 The current value of k_1
-#' @param k_2 The current value of k_2
-#' @param last_trees The last set of trees
-#' @param num_trees The number of trees
-#' @param tau The current value of tau
-#' @param prior Logical to decide whether to use a prior (set as
-#' dweibull(1, 5) for now)
-#'
-# Update k1 --------------------------------------------------------------
-
-update_k1 <- function(y, min_u, max_u, k_1, k_2, last_trees, num_trees, tau, prior = TRUE){
-  # new_k1    <- stats::runif(1, min = min_u, max = max_u)
-  k1_sd <- 0.1
   repeat {
     # Proposal distribution
-    new_k1 <- k_1 + stats::rnorm(1, sd = k1_sd) 
-    if (new_k1 > 0)
+    new_tau_phi <- k_1 + stats::rnorm(1, sd = tau_phi_sd) 
+    if (new_tau_phi > 0)
       break
   }
-  log_rat <- stats::pnorm(k_1, sd = k1_sd, log = TRUE) - stats::pnorm(new_k1, sd = k1_sd, log = TRUE)
+  log_rat <- stats::pnorm(k_1, sd = tau_phi_sd, log = TRUE) - stats::pnorm(new_tau_phi, sd = tau_phi_sd, log = TRUE)
   
   current   <- full_conditional_hebart(y, k_1, k_2, last_trees, num_trees, tau)
-  candidate <- full_conditional_hebart(y, new_k1, k_2, last_trees, num_trees, tau)
+  candidate <- full_conditional_hebart(y, new_tau_phi, k_2, last_trees, num_trees, tau)
 
   if(prior){
     prior_current   <- stats::dweibull(k_1, shape = 1, 5, log = TRUE)
-    prior_candidate <- stats::dweibull(new_k1, shape = 1, 5, log = TRUE)
+    prior_candidate <- stats::dweibull(new_tau_phi, shape = 1, 5, log = TRUE)
     log.alpha <- (candidate - current) + (prior_candidate - prior_current) + log_rat # ll is the log likelihood, lprior the log prior
   } else {
     log.alpha <- candidate - current + log_rat
   }
 
   accept <- log.alpha >= 0 || log.alpha >= log(stats::runif(1))
-  theta <- ifelse(accept, new_k1, k_1)
+  theta <- ifelse(accept, new_tau_phi, k_1)
   return(theta)
 }

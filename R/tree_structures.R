@@ -24,7 +24,7 @@ create_stump <- function(num_trees,
   # Split variable
   # Split value
   # mu values
-  # mu values for each group
+  # phi values for each group
   # Node size
 
   group_names     <- unique(groups)
@@ -55,7 +55,7 @@ create_stump <- function(num_trees,
       "split_variable",
       "split_value",
       "mu",
-      paste0("mu", sort(group_names)),
+      paste0("phi", sort(group_names)),
       "node_size"
     )
 

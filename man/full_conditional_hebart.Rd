@@ -2,25 +2,28 @@
 % Please edit documentation in R/posteriors.R
 \name{full_conditional_hebart}
 \alias{full_conditional_hebart}
-\title{Full conditional of all the data}
+\title{Tree full conditional for hebart}
 \usage{
-full_conditional_hebart(y, k_1, k_2, last_trees, num_trees, tau)
+full_conditional_hebart(tree, R, num_trees, tau, tau_phi, tau_mu, M)
 }
 \arguments{
-\item{y}{The y vector}
+\item{tree}{The current tree}
 
-\item{k_1}{The current value of k_1}
-
-\item{k_2}{The current value of k_2}
-
-\item{last_trees}{The last set of trees}
+\item{R}{The corresponding residuals for the tree}
 
 \item{num_trees}{The number of trees}
 
 \item{tau}{The current value of tau}
+
+\item{tau_phi}{The current value of tau_phi}
+
+\item{tau_mu}{The current value of tau_mu}
+
+\item{M}{The group matrix}
 }
 \description{
-A function that returns the full conditional value
+A function that returns current tree full conditional
+distribution value
 }
 \author{
 Bruna Wundervald, \email{brunadaviesw@gmail.com}, Andrew Parnell

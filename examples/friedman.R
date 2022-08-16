@@ -24,66 +24,44 @@ train <- data.frame(y, X, group)
 # Model parameters -----------------------------------
 group_variable <-  "group"
 formula        <- y ~ X1 + X2 + X3 + X4 + X5
-pars           <- list(
-  alpha = 0.95, beta = 2, k_1 = 1,
-  k_2 = 1, nu = 3, lambda = 0.1
+
+num_trees <- 3
+pars   <- list(
+  alpha = 0.95, beta = 2,
+  nu = 3, lambda = 0.1,
+  tau_mu = 16 * num_trees,
+  shape_tau_phi = 0.5,
+  scale_tau_phi = 1 # These give mean ~2 and sd ~4
 )
 
-# 1. Without varying k1: 
-k1_pars        <-  list(sample_k1 = FALSE)
-
 # Running the model ----------------------------------
-# when num_trees = 30
-# hb_model <- hebart(
-#   formula,
-#   group_variable = "group",
-#   data           = train,
-#   control        = pars,
-#   num_trees      = 5,
-#   k_1_pars       = k1_pars)
-
-# hb_model <- hebart(formula,
-#                      data           = train,
-#                      group_variable = "group", 
-#                      num_trees = 30,
-#                      priors = list(
-#                        alpha = 0.95, # Prior control list
-#                        beta = 2,
-#                        k_1 = 1e-10,
-#                        k_2 = 0.2,
-#                        nu = 3,
-#                        lambda = 0.1
-#                      ))
-# Look at the output
-# n_saved <- length(hb_model$sigma)
-# qplot(1:n_saved, hb_model$sigma, xlab = "Iteration (thinned)", ylab = "Residual\nsd") + theme_minimal() + theme(axis.title.y = element_text(angle = 0, vjust = 1, hjust = 0))
-# y_hat_HEBART <- apply(hb_model$y_hat, 2, "mean")
-# qplot(y, y_hat_HEBART) + geom_abline()
-# cor(y, y_hat_HEBART)
-
-# pp <- predict_hebart(test$X, group_test, hb_model, type = "mean")
-# sqrt(mean(pp - scale(test$y))^2) # 0.021
-# cor(pp, scale(test$y)) # 0.021
-# hb_model$sigma 
-# qplot(test$y, pp)
 
 hb_model <- hebart(formula,
                    data           = train,
                    group_variable = "group", 
-                   num_trees = 4,
+                   num_trees = num_trees,
                    priors = list(
                      alpha = 0.95, # Prior control list
                      beta = 2,
-                     k_1 = 0.0001,
-                     k_2 = 0.2,
-                     nu = 3,
-                     lambda = 0.1
-                   ))
+                     nu = 2,
+                     lambda = 0.1,
+                     tau_mu = 16 * num_trees,
+                     shape_tau_phi = 0.5,
+                     scale_tau_phi = 1
+                   ), 
+                   inits = list(tau = 1,
+                                tau_phi = 1000),
+                   MCMC = list(iter = 1500, 
+                               burn = 250, 
+                               thin = 1)
+                   )
 pp <- predict_hebart(test$X, group_test, hb_model, type = "mean")
 sqrt(mean(pp - scale(test$y))^2) # 0.021
 cor(pp, scale(test$y)) # 0.021
 hb_model$sigma 
-qplot(test$y, pp)
+qplot(scale(test$y), pp) + geom_abline()
+stop()
+
 #----------------------------------------------------
 # When we change k_1 --------------------------------
 k_1_pars        <-  list(sample_k1 = TRUE,

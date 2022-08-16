@@ -4,29 +4,22 @@
 \alias{update_tau}
 \title{Update tau}
 \usage{
-update_tau(y, M, nu, lambda, num_groups, k_1, k_2, num_trees, last_trees)
+update_tau(y, predictions, nu, lambda)
 }
 \arguments{
 \item{y}{The y vector}
 
-\item{M}{The current group model matrix}
+\item{predictions}{The current set of predictions}
 
-\item{nu}{The current value of nu}
+\item{nu}{The value of nu}
 
-\item{lambda}{The current value of lambda}
-
-\item{num_groups}{The number of groups}
-
-\item{k_1}{The current value of k1}
-
-\item{k_2}{The current value of k2
-# Update tau --------------------------------------------------------------}
+\item{lambda}{The value of lambda}
 }
 \description{
 Samples values from the posterior distribution of tau
 }
 \details{
-# Simulate mu groups HEBART -----------------------------------------------
+# Simulate tau -----------------------------------------------
 }
 \author{
 Bruna Wundervald, \email{brunadaviesw@gmail.com}, Andrew Parnell

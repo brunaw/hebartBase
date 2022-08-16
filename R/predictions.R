@@ -64,10 +64,8 @@ get_group_predictions <- function(trees, X, groups, single_tree = FALSE) {
   
   group_names     <- unique(groups)
   num_groups      <- length(unique(groups))
-  group_col_names <- paste0("mu", group_names)
-  group_col_names_all <- paste0("mu", groups)
-  
-  #group_col_names <- unique(paste0("mu", groups))
+  group_col_names <- paste0("phi", group_names)
+  group_col_names_all <- paste0("phi", groups)
   
   # Normally trees will be a list of lists but just in case
   if (single_tree) {
@@ -85,7 +83,7 @@ get_group_predictions <- function(trees, X, groups, single_tree = FALSE) {
       for (i in 1:length(actual_node_indices)) {
         curr_groups <- groups[curr_X_node_indices == actual_node_indices[i]]
         predictions[curr_X_node_indices == actual_node_indices[i]] <-
-          trees$tree_matrix[actual_node_indices[i], paste0("mu", curr_groups)]
+          trees$tree_matrix[actual_node_indices[i], paste0("phi", curr_groups)]
       }
     }
     # More here to deal with more complicated trees - i.e. multiple trees

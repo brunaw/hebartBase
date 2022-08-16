@@ -10,10 +10,10 @@ hebart(
   group_variable,
   num_trees = 2,
   control = list(node_min_size = 5),
-  priors = list(alpha = 0.95, beta = 2, k_1 = 1e-10, k_2 = 0.2, nu = 3, lambda = 0.1),
-  inits = list(tau = 1),
-  MCMC = list(iter = 250, burn = 50, thin = 1),
-  k_1_pars = list(sample_k1 = FALSE, min_u = 0, max_u = 5, k1_prior = TRUE)
+  priors = list(alpha = 0.95, beta = 2, nu = 2, lambda = 0.1, tau_mu = 16 * num_trees,
+    shape_tau_phi = 0.5, scale_tau_phi = 1),
+  inits = list(tau = 1, tau_phi = 1),
+  MCMC = list(iter = 250, burn = 50, thin = 1)
 )
 }
 \arguments{
@@ -47,9 +47,9 @@ other results obtained in the last iteration of the MCMC
 \details{
 Priors used ----------------------------------------------------------
 y_{ij} ~ Normal(m_j, tau^-{1})
-tau    ~ Gamma(alpha, beta)
-mu     ~ Normal(0, tau_mu = k2*tau^-{1})
-mu_j   ~ Normal(mu, k1*tau^-{1})
+tau    ~ Gamma(nu/2, nu*lambda/2)
+mu     ~ Normal(0, tau_mu^-1)
+phi   ~ Normal(mu, (T *tau_phi)^-1)
 ----------------------------------------------------------------------
 }
 \author{
