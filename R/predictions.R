@@ -140,10 +140,11 @@ predict_hebart <- function(newX, new_groups, hebart_posterior,
   }
   
   # Sort out what to return
+  inv_scale <- function(x) (x + 0.5) * (hebart_posterior$y_max - hebart_posterior$y_min) + hebart_posterior$y_min
   out <- switch(type,
-                all = y_hat_mat,
-                mean = apply(y_hat_mat, 2, "mean"),
-                median = apply(y_hat_mat, 2, "median")
+                all = inv_scale(y_hat_mat),
+                mean = apply(inv_scale(y_hat_mat), 2, "mean"),
+                median = apply(inv_scale(y_hat_mat), 2, "median")
   )
   
   return(out)

@@ -170,10 +170,6 @@ simulate_phi_hebart <- function(tree, R, groups, tau, tau_phi, M, num_trees) {
     
   }
   
-  # Wipe all the old mu groups out for other nodes
-  # which_non_terminal <- which(tree$tree_matrix[, "terminal"] == 0)
-  # tree$tree_matrix[which_non_terminal,  sort(group_col_names)] <- NA
-  
   return(tree)
 }
 
@@ -211,38 +207,27 @@ update_tau <- function(y, predictions, nu, lambda) {
 #' @param groups if NULL just creates the terminal node matrix. If present 
 #' allocates it into groups too
 create_S <- function(curr_trees, groups = NULL){
-  browser()
+  
   
   if(is.null(groups)) {
-    
-  }
-  
-  # Type = 1 means find the matrix at the group level
-  
-  if(type == 1) {
-    # First tree
-    tree <- curr_trees[[1]]
-    which_terminal <- which(tree$tree_matrix[, "terminal"] == 1)
-    if(length(unique(tree$node_indices)) > 1){
-      S <- stats::model.matrix(~factor(tree$node_indices) - 1)
-    } else {
-      S <- matrix(rep(1, length(tree$node_indices)))
+    node_fac <- factor(curr_trees[[1]]$node_indices)
+    S <- mod.mat(node_fac)  
+    if(length(curr_trees) > 1) {
+      for(i in 2:length(curr_trees)) {
+        node_fac <- factor(curr_trees[[i]]$node_indices)
+        S <- cbind(S, mod.mat(node_fac))
+      }
     }
-    n_nodes <- length(unique(tree$node_indices))
-    
-    if(num_trees > 1){
-      for(i in 2:num_trees){
-        tree <-   last_trees[[i]]
-        which_terminal <- which(tree$tree_matrix[, "terminal"] == 1)
-        if(length(unique(tree$node_indices)) > 1){
-          Ss <- stats::model.matrix(~factor(tree$node_indices) - 1)
-        } else {
-          Ss <- matrix(rep(1, length(tree$node_indices)))
-        }
-        
-        S <- cbind(S, Ss)
-        n_nodes <- length(unique(tree$node_indices)) + n_nodes
-      } 
+  } else {
+    # This is a hacky way of combining the terminal node and the groups
+    # There must be a more elegant way
+    node_groups <- factor(paste0(curr_trees[[1]]$node_indices, groups))
+    S <- mod.mat(node_groups)
+    if(length(curr_trees) > 1) {
+      for(i in 2:length(curr_trees)) {
+        node_groups <- factor(paste0(curr_trees[[i]]$node_indices, groups))
+        S <- cbind(S, mod.mat(node_groups))
+      }
     }
   }
 
@@ -263,30 +248,31 @@ create_S <- function(curr_trees, groups = NULL){
 #' @param num_trees The number of trees
 #' @param shape_tau_phi Weibull shape parameter
 #' @param scale_tau_phi Weibull scale parameter
-update_tau_phi <- function(y, S1, S2, tau_phi, tau_mu, tau, shape_tau_phi, scale_tau_phi){
-  # new_tau_phi <- stats::runif(1, min = min_u, max = max_u)
-  tau_phi_sd <- 0.1
+update_tau_phi <- function(y, S1, S2, tau_phi, tau_mu, tau, shape_tau_phi, scale_tau_phi, tau_phi_sd = 0.1){
   
   repeat {
     # Proposal distribution
-    new_tau_phi <- k_1 + stats::rnorm(1, sd = tau_phi_sd) 
+    new_tau_phi <- tau_phi + stats::rnorm(1, sd = tau_phi_sd) 
     if (new_tau_phi > 0)
       break
   }
-  log_rat <- stats::pnorm(k_1, sd = tau_phi_sd, log = TRUE) - stats::pnorm(new_tau_phi, sd = tau_phi_sd, log = TRUE)
+  log_rat <- stats::pnorm(tau_phi, sd = tau_phi_sd, log = TRUE) - stats::pnorm(new_tau_phi, sd = tau_phi_sd, log = TRUE)
   
-  current   <- full_conditional_hebart(y, k_1, k_2, last_trees, num_trees, tau)
-  candidate <- full_conditional_hebart(y, new_tau_phi, k_2, last_trees, num_trees, tau)
-
-  if(prior){
-    prior_current   <- stats::dweibull(k_1, shape = 1, 5, log = TRUE)
-    prior_candidate <- stats::dweibull(new_tau_phi, shape = 1, 5, log = TRUE)
-    log.alpha <- (candidate - current) + (prior_candidate - prior_current) + log_rat # ll is the log likelihood, lprior the log prior
-  } else {
-    log.alpha <- candidate - current + log_rat
-  }
+  n <- length(y)
+  Omega_y_current <- diag(n)/tau + tcrossprod(S1)/(T*tau_phi) + tcrossprod(S2)/tau_mu
+  Omega_y_candidate <- diag(n)/tau + tcrossprod(S1)/(T*new_tau_phi) + tcrossprod(S2)/tau_mu
+  
+  post_current <- mvnfast::dmvn(y, rep(0, n), sigma = Omega_y_current, log = TRUE)
+  post_candidate <- mvnfast::dmvn(y, rep(0, n), sigma = Omega_y_candidate, log = TRUE)
+  
+  prior_current   <- stats::dweibull(tau_phi, shape = shape_tau_phi, 
+                                     scale = scale_tau_phi, log = TRUE)
+  prior_candidate <- stats::dweibull(new_tau_phi, shape = shape_tau_phi, 
+                                     scale = scale_tau_phi, log = TRUE)
+  
+  log.alpha <- (post_candidate - post_current) + (prior_candidate - prior_current) + log_rat
 
   accept <- log.alpha >= 0 || log.alpha >= log(stats::runif(1))
-  theta <- ifelse(accept, new_tau_phi, k_1)
-  return(theta)
+  tau_phi <- ifelse(accept, new_tau_phi, tau_phi)
+  return(tau_phi)
 }

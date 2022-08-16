@@ -46,7 +46,8 @@ hebart <- function(formula,
                    MCMC = list(
                      iter = 250, # Number of iterations
                      burn = 50, # Size of burn in
-                     thin = 1
+                     thin = 1,
+                     tau_phi_sd = 2
                    )) {
 
   #   # Handling formula interface
@@ -54,12 +55,16 @@ hebart <- function(formula,
   response_name <- all.vars(formula_int)[1]
   names_x <- all.vars(formula_int[[3]])
 
-  # Estimate k2 ------------------------------------------
-  # m0       <- stats::lm(formula, data)
-  # var_res  <- stats::var(m0$residuals)
-  # k        <- 2
-  # k_2      <- 0.25 * var_res / (k^2 * num_trees)
-
+  # Used in create_S to avoid error with stumps
+  mod.mat <- function(f) {
+    if(nlevels(f) == 1) {
+      m <- matrix(1, nrow = length(f), ncol = 1)
+    } else {
+      m <- stats::model.matrix(~ f - 1)  
+    }
+    return(m)
+  }
+  
   #-------------------------------------------------------
   data <- dplyr::select(data, c(!!response_name, !!names_x, !!group_variable))
   # data    <- dplyr::select(data, c(!!response_name, !!names_x, "group"))
@@ -91,7 +96,8 @@ hebart <- function(formula,
   iter <- MCMC$iter # Number of iterations
   burn <- MCMC$burn # Size of burn in
   thin <- MCMC$thin # Amount of thinning
-
+  tau_phi_sd <- MCMC$tau_phi_sd # SD parameter for tau_phi MH update
+  
   # Storage containers
   store_size <- (iter - burn) / thin
   tree_store <- vector("list", store_size)
@@ -102,9 +108,9 @@ hebart <- function(formula,
   tau_phi_store <- rep(NA, store_size)
 
   # Scale the response target variable
-  y_mean <- mean(y)
-  y_sd <- stats::sd(y)
-  y_scale <- (y - y_mean) / y_sd
+  y_min <- min(y)
+  y_max <- max(y)
+  y_scale <- (y - y_min)/(y_max - y_min) - 0.5
   n <- length(y_scale)
 
   # Get the group matrix M
@@ -250,12 +256,11 @@ hebart <- function(formula,
     sigma <- 1 / sqrt(tau)
 
     # Update tau_phi
-    S2 <- create_S(trees)
-    S1 <- create_S(trees, groups)
-    
+    S1 <- create_S(curr_trees, groups)
+    S2 <- create_S(curr_trees)
     
     tau_phi <- update_tau_phi(
-      y_scale, S1, S2, tau_phi, tau_mu, tau, shape_tau_phi, scale_tau_phi
+      y_scale, S1, S2, tau_phi, tau_mu, tau, shape_tau_phi, scale_tau_phi, tau_phi_sd
     )
 
     # Get the overall log likelihood
@@ -267,14 +272,13 @@ hebart <- function(formula,
   } # End iterations loop
   cat("\n") # Make sure progress bar ends on a new line
 
-
   result <- list(
     trees = tree_store,
     sigma = sigma_store,
-    y_hat = y_hat_store * y_sd + y_mean,
+    y_hat = (y_hat_store + 0.5) * (max(y) - min(y)) + min(y),
     log_lik = log_lik_store,
     full_cond = full_cond_store,
-    tau_phi = tau_phi_store,
+    sigma_phi = 1/sqrt(tau_phi_store),
     y = y,
     X = X,
     iter = iter,
@@ -282,13 +286,15 @@ hebart <- function(formula,
     thin = thin,
     store_size = store_size,
     num_trees = num_trees,
-    formula = formula
+    formula = formula,
+    y_min = y_min,
+    y_max = y_max
   )
 
   # RMSE calculation
   pred <- predict_hebart(X, groups, result, type = "mean")
-  mse <- mean((pred - y_scale)^2)
-  r.squared <- 1 - mse / stats::var(y_scale)
+  mse <- mean((pred - y)^2)
+  r.squared <- 1 - mse / stats::var(y)
 
   result$mse <- mse
   result$r.squared <- r.squared
