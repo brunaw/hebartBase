@@ -234,45 +234,49 @@ create_S <- function(curr_trees, groups = NULL){
   return(S)
 }
 
-#' @name update_tau_phi
+#' @name update_sigma_phi
 #' @author Bruna Wundervald, \email{brunadaviesw@gmail.com}, Andrew Parnell
 #' @export
-#' @title Update tau_phi
-#' @description Samples values from the posterior distribution of tau_phi
+#' @title Update sigma_phi
+#' @description Samples values from the posterior distribution of sigma_phi
 #' @param y The response vector
 #' @param S1 The group level node allocation matrix
 #' @param S2 The terminal node allocation
 #' @param tau The current value of tau
-#' @param tau_phi The current value of tau_phi
+#' @param sigma_phi The current value of sigma_phi
 #' @param tau_mu The current value of tau_mu
 #' @param num_trees The number of trees
-#' @param shape_tau_phi Weibull shape parameter
-#' @param scale_tau_phi Weibull scale parameter
-update_tau_phi <- function(y, S1, S2, tau_phi, tau_mu, tau, shape_tau_phi, scale_tau_phi, tau_phi_sd = 0.1){
+#' @param shape_sigma_phi Weibull shape parameter
+#' @param scale_sigma_phi Weibull scale parameter
+#' @param num_trees Number of trees
+#' @param sigma_phi_sd Standard deviation of proposal distribution
+update_sigma_phi <- function(y, S1, S2, sigma_phi, tau_mu, tau, shape_sigma_phi, scale_sigma_phi, num_trees, sigma_phi_sd = 0.1){
   
   repeat {
     # Proposal distribution
-    new_tau_phi <- tau_phi + stats::rnorm(1, sd = tau_phi_sd) 
-    if (new_tau_phi > 0)
+    new_sigma_phi <- sigma_phi + stats::rnorm(1, sd = sigma_phi_sd) 
+    if (new_sigma_phi > 0)
       break
   }
-  log_rat <- stats::pnorm(tau_phi, sd = tau_phi_sd, log = TRUE) - stats::pnorm(new_tau_phi, sd = tau_phi_sd, log = TRUE)
+  log_rat <- stats::pnorm(sigma_phi, sd = sigma_phi_sd, log = TRUE) - stats::pnorm(new_sigma_phi, sd = sigma_phi_sd, log = TRUE)
+  new_tau_phi <- 1/(new_sigma_phi^2)
+  tau_phi <- 1/(sigma_phi^2)
   
   n <- length(y)
-  Omega_y_current <- diag(n)/tau + tcrossprod(S1)/(T*tau_phi) + tcrossprod(S2)/tau_mu
-  Omega_y_candidate <- diag(n)/tau + tcrossprod(S1)/(T*new_tau_phi) + tcrossprod(S2)/tau_mu
+  Omega_y_current <- diag(n)/tau + tcrossprod(S1)/(num_trees*tau_phi) + tcrossprod(S2)/tau_mu
+  Omega_y_candidate <- diag(n)/tau + tcrossprod(S1)/(num_trees*new_tau_phi) + tcrossprod(S2)/tau_mu
   
   post_current <- mvnfast::dmvn(y, rep(0, n), sigma = Omega_y_current, log = TRUE)
   post_candidate <- mvnfast::dmvn(y, rep(0, n), sigma = Omega_y_candidate, log = TRUE)
   
-  prior_current   <- stats::dweibull(tau_phi, shape = shape_tau_phi, 
-                                     scale = scale_tau_phi, log = TRUE)
-  prior_candidate <- stats::dweibull(new_tau_phi, shape = shape_tau_phi, 
-                                     scale = scale_tau_phi, log = TRUE)
+  prior_current   <- stats::dweibull(sigma_phi, shape = shape_sigma_phi, 
+                                     scale = scale_sigma_phi, log = TRUE)
+  prior_candidate <- stats::dweibull(new_sigma_phi, shape = shape_sigma_phi, 
+                                     scale = scale_sigma_phi, log = TRUE)
   
   log.alpha <- (post_candidate - post_current) + (prior_candidate - prior_current) + log_rat
 
   accept <- log.alpha >= 0 || log.alpha >= log(stats::runif(1))
-  tau_phi <- ifelse(accept, new_tau_phi, tau_phi)
-  return(tau_phi)
+  sigma_phi <- ifelse(accept, new_sigma_phi, sigma_phi)
+  return(sigma_phi)
 }

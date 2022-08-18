@@ -4,16 +4,13 @@
 \alias{create_S}
 \title{Create S}
 \usage{
-create_S(k_1, k_2, last_trees, num_trees)
+create_S(curr_trees, groups = NULL)
 }
 \arguments{
-\item{k_1}{The current value of k1}
+\item{curr_trees}{The current set of trees}
 
-\item{k_2}{The current value of k2}
-
-\item{last_trees}{The last trees}
-
-\item{num_trees}{The number of trees}
+\item{groups}{if NULL just creates the terminal node matrix. If present 
+allocates it into groups too}
 }
 \description{
 Creates the S matrix

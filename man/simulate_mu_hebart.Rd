@@ -4,7 +4,7 @@
 \alias{simulate_mu_hebart}
 \title{Simulate mu}
 \usage{
-simulate_mu_hebart(tree, R, tau, tau_phi, M, num_trees)
+simulate_mu_hebart(tree, R, tau, tau_phi, tau_mu, M, num_trees)
 }
 \arguments{
 \item{tree}{The current tree}
@@ -13,11 +13,13 @@ simulate_mu_hebart(tree, R, tau, tau_phi, M, num_trees)
 
 \item{tau}{The  current value of tau}
 
-\item{tau_phi}{The  current value of tau_phi}
+\item{tau_phi}{The current value of tau_phi}
 
-\item{M}{The  current value of M}
+\item{tau_mu}{The value of tau_mu}
 
-\item{num_trees}{The  number of trees}
+\item{M}{The value of M}
+
+\item{num_trees}{The number of trees}
 }
 \description{
 Simulates mu for each terminal node

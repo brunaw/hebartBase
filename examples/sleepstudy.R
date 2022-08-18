@@ -22,43 +22,31 @@ train       <- training(data_split)
 test        <- testing(data_split)
 groups      <- train$group
 
-# Model parameters -----------------------------------
-group_variable <-  "group"
-formula <- y ~ X1
-num_trees <- 1
-pars   <- list(
-  alpha = 0.95, beta = 2,
-  nu = 3, lambda = 0.1,
-  tau_mu = 16 * num_trees,
-  shape_tau_phi = 0.5,
-  scale_tau_phi = 1 # These give mean ~2 and sd ~4
-)
-
 # Running the model ----------------------------------
 
-hb_model <- hebart(formula,
+hb_model <- hebart(y ~ X1,
                    data = train,
                    group_variable = "group", 
-                   num_trees = num_trees,
+                   num_trees = 10,
                    priors = list(
                      alpha = 0.95, # Prior control list
                      beta = 2,
                      nu = 2,
                      lambda = 0.1,
                      tau_mu = 16 * num_trees,
-                     shape_tau_phi = 0.5,
-                     scale_tau_phi = 1
+                     shape_sigma_phi = 0.5,
+                     scale_sigma_phi = 1
                    ), 
                    inits = list(tau = 1,
-                                tau_phi = 10000),
+                                sigma_phi = 1),
                    MCMC = list(iter = 1500, 
                                burn = 250, 
                                thin = 1,
-                               tau_phi_sd = 0)
+                               sigma_phi_sd = 0.5)
                    )
 hb_model
 
-pp <- predict_hebart(newX = test, new_groups = test$group,
+pp <- predict_hebart(newX = matrix(test$X1, ncol = 1), new_groups = test$group,
                      hebart_posterior  = hb_model, 
                      type = "mean")
 
@@ -71,10 +59,10 @@ qplot(1:length(hb_model$sigma), hb_model$sigma_phi)
 stop()
 
 # Comparison to BART --------------------------
-bart_0 = dbarts::bart2(formula, 
+bart_0 = dbarts::bart2(y ~ X1, 
                        #n.trees = 15,
                        data = train,
-                       test = test, 
+                       test = test,
                        keepTrees = TRUE)
 pp <- bart_0$yhat.test.mean
 sqrt(mean(pp - test$y)^2) # 5.512617 - 100 trees
@@ -86,7 +74,7 @@ lme_ss <- lme4::lmer(y ~ X1 + (1|group), train)
 pp <- predict(lme_ss, test)
 sqrt(mean(pp - test$y)^2) # 1.527163
 cor(pp, test$y) # 0.8426536
-qplot(test$y, pp)
+qplot(test$y, pp) + geom_abline()
 
 
 

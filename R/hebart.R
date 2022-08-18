@@ -17,10 +17,10 @@
 #'  Everything
 #' @details
 #' Priors used ----------------------------------------------------------
-#' y_{ij} ~ Normal(m_j, tau^-{1})
+#' y_{ij} ~ Normal(m_j, tau^-1)
 #' tau    ~ Gamma(nu/2, nu*lambda/2)
 #' mu     ~ Normal(0, tau_mu^-1)
-#' phi   ~ Normal(mu, (T *tau_phi)^-1)
+#' phi    ~ Normal(mu, sigma_phi^2 / T)
 #' ----------------------------------------------------------------------
 
 hebart <- function(formula,
@@ -36,8 +36,8 @@ hebart <- function(formula,
                      nu = 2,
                      lambda = 0.1,
                      tau_mu = 16 * num_trees,
-                     shape_tau_phi = 0.5,
-                     scale_tau_phi = 1
+                     shape_sigma_phi = 0.5,
+                     scale_sigma_phi = 1
                    ),
                    inits = list(
                      tau = 1,
@@ -47,10 +47,10 @@ hebart <- function(formula,
                      iter = 250, # Number of iterations
                      burn = 50, # Size of burn in
                      thin = 1,
-                     tau_phi_sd = 2
+                     sigma_phi_sd = 2
                    )) {
 
-  #   # Handling formula interface
+  # Handling formula interface
   formula_int <- stats::as.formula(paste(c(formula), "- 1"))
   response_name <- all.vars(formula_int)[1]
   names_x <- all.vars(formula_int[[3]])
@@ -83,20 +83,21 @@ hebart <- function(formula,
   nu <- priors$nu # Parameter 1 for precision
   lambda <- priors$lambda # Parameter 2 for precision
   tau_mu <- priors$tau_mu # Overall mean precision
-  shape_tau_phi <- priors$shape_tau_phi # Weibull prior parameters
-  scale_tau_phi <- priors$scale_tau_phi
+  shape_sigma_phi <- priors$shape_sigma_phi # Weibull prior parameters
+  scale_sigma_phi <- priors$scale_sigma_phi
 
   # Extract initial values
   tau <- inits$tau
   sigma <- 1 / sqrt(tau)
-  tau_phi <- inits$tau_phi
+  sigma_phi <- inits$sigma_phi
+  tau_phi <- 1 / (sigma_phi^2)
   log_lik <- 0
 
   # Extract MCMC details
   iter <- MCMC$iter # Number of iterations
   burn <- MCMC$burn # Size of burn in
   thin <- MCMC$thin # Amount of thinning
-  tau_phi_sd <- MCMC$tau_phi_sd # SD parameter for tau_phi MH update
+  sigma_phi_sd <- MCMC$sigma_phi_sd # SD parameter for sigma_phi MH update
   
   # Storage containers
   store_size <- (iter - burn) / thin
@@ -104,8 +105,7 @@ hebart <- function(formula,
   sigma_store <- rep(NA, store_size)
   y_hat_store <- matrix(NA, ncol = length(y), nrow = store_size)
   log_lik_store <- rep(NA, store_size)
-  full_cond_store <- matrix(NA, ncol = num_trees, nrow = store_size)
-  tau_phi_store <- rep(NA, store_size)
+  sigma_phi_store <- rep(NA, store_size)
 
   # Scale the response target variable
   y_min <- min(y)
@@ -145,7 +145,7 @@ hebart <- function(formula,
       sigma_store[curr] <- sigma
       y_hat_store[curr, ] <- predictions
       log_lik_store[curr] <- log_lik
-      tau_phi_store[curr] <- tau_phi
+      sigma_phi_store[curr] <- sigma_phi
     }
 
     # Start looping through trees
@@ -203,16 +203,10 @@ hebart <- function(formula,
         get_tree_prior(curr_trees[[j]], alpha, beta)
 
       # If accepting a new tree update all relevant parts
-      a <- exp(l_new - l_old)
-
-      if ((i > burn) & ((i %% thin) == 0)) {
-        full_cond_store[curr, j] <- l_old
-      }
-      if (a > stats::runif(1)) {
-        # Make changes if accept
-        curr_trees <- new_trees
-      } # End of accept if statement
-
+      log.alpha <- (l_new - l_old)
+      accept <- log.alpha >= 0 || log.alpha >= log(stats::runif(1))
+      if (accept) curr_trees <- new_trees
+      
       # Update mu whether tree accepted or not
       curr_trees[[j]] <- simulate_mu_hebart(
         tree = curr_trees[[j]],
@@ -259,9 +253,11 @@ hebart <- function(formula,
     S1 <- create_S(curr_trees, groups)
     S2 <- create_S(curr_trees)
     
-    tau_phi <- update_tau_phi(
-      y_scale, S1, S2, tau_phi, tau_mu, tau, shape_tau_phi, scale_tau_phi, tau_phi_sd
+    sigma_phi <- update_sigma_phi(
+      y_scale, S1, S2, sigma_phi, tau_mu, tau, shape_sigma_phi, scale_sigma_phi, 
+      num_trees, sigma_phi_sd
     )
+    tau_phi <- 1 / (sigma_phi^2)
 
     # Get the overall log likelihood
     log_lik <- sum(stats::dnorm(y_scale, 
@@ -277,8 +273,7 @@ hebart <- function(formula,
     sigma = sigma_store,
     y_hat = (y_hat_store + 0.5) * (max(y) - min(y)) + min(y),
     log_lik = log_lik_store,
-    full_cond = full_cond_store,
-    sigma_phi = 1/sqrt(tau_phi_store),
+    sigma_phi = sigma_phi_store,
     y = y,
     X = X,
     iter = iter,
