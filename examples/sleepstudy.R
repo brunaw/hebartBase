@@ -50,7 +50,7 @@ pp <- predict_hebart(newX = matrix(test$X1, ncol = 1), new_groups = test$group,
                      hebart_posterior  = hb_model, 
                      type = "mean")
 
-sqrt(mean(pp - test$y)^2) 
+sqrt(mean((pp - test$y)^2)) # 31.99092
 cor(pp, test$y)
 qplot(test$y, pp) + geom_abline()
 qplot(1:length(hb_model$sigma), hb_model$sigma)
@@ -65,14 +65,14 @@ bart_0 = dbarts::bart2(y ~ X1,
                        test = test,
                        keepTrees = TRUE)
 pp <- bart_0$yhat.test.mean
-sqrt(mean(pp - test$y)^2) # 5.512617 - 100 trees
+sqrt(mean((pp - test$y)^2)) # 53.28167 - 100 trees
 cor(pp, test$y) #   0.4983258
 qplot(test$y, pp) + geom_abline()
 
 # Comparison to LME --------------------------
 lme_ss <- lme4::lmer(y ~ X1 + (1|group), train)
 pp <- predict(lme_ss, test)
-sqrt(mean(pp - test$y)^2) # 1.527163
+sqrt(mean((pp - test$y)^2)) # 33.19528
 cor(pp, test$y) # 0.8426536
 qplot(test$y, pp) + geom_abline()
 

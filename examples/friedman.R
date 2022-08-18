@@ -30,8 +30,8 @@ pars   <- list(
   alpha = 0.95, beta = 2,
   nu = 3, lambda = 0.1,
   tau_mu = 16 * num_trees,
-  shape_tau_phi = 0.5,
-  scale_tau_phi = 1 # These give mean ~2 and sd ~4
+  shape_sigma_phi = 0.5,
+  scale_sigma_phi = 1 # These give mean ~2 and sd ~4
 )
 
 # Running the model ----------------------------------
@@ -46,15 +46,15 @@ hb_model <- hebart(formula,
                      nu = 2,
                      lambda = 0.1,
                      tau_mu = 16 * num_trees,
-                     shape_tau_phi = 0.5,
-                     scale_tau_phi = 1
+                     shape_sigma_phi = 0.5,
+                     scale_sigma_phi = 1
                    ), 
                    inits = list(tau = 1,
-                                tau_phi = 1),
+                                sigma_phi = 1),
                    MCMC = list(iter = 1500, 
                                burn = 250, 
                                thin = 1,
-                               tau_phi_sd = 2)
+                               sigma_phi_sd = 2)
                    )
 pp <- predict_hebart(test$X, group_test, hb_model, type = "mean")
 sqrt(mean(pp - test$y)^2)
