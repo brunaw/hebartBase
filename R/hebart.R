@@ -11,8 +11,6 @@
 #' @param priors A list with prior hyperparameters as defined by the model
 #' @param inits A list with initial values for parameters
 #' @param MCMC A list with MCMC parameters
-#' @param k_1_pars A list to decide whether to sample k1 or not and if yes, from
-#' which range
 #' @return A list containing:
 #'  Everything
 #' @details

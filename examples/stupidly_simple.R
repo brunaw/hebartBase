@@ -42,11 +42,11 @@ test <- data.frame(
 
 
 # Now run HEBART on it ----------------------------------------------------
-
+num_trees <- 10
 hb_model <- hebart(y ~ x,
                    data = train,
                    group_variable = "groups", 
-                   num_trees = 10,
+                   num_trees = num_trees,
                    priors = list(
                      alpha = 0.95, # Prior control list
                      beta = 2,

@@ -115,7 +115,19 @@ predict_hebart <- function(newX, new_groups, hebart_posterior,
                            type = c("all", "median", "mean")) {
   # Create predictions based on a new feature matrix
   # Note that there is minimal error checking in this - newX needs to be right!
+  formula     <- hebart_posterior$formula
+  formula_int <- stats::as.formula(paste(c(formula), "- 1"))
+  response_name <- all.vars(formula_int)[1]
+  names_x <- all.vars(formula_int[[3]])
   
+  if(is.data.frame(newX)){
+    newX <- matrix(newX[, names_x], ncol = length(names_x))
+  }
+  
+  if(ncol(newX) != length(names_x)){
+    stop("Please use a matrix with the same \
+number of covariates used during training")
+  }
   # Create holder for predicted values
   n_its <- length(hebart_posterior$sigma)
   y_hat_mat <- matrix(NA,

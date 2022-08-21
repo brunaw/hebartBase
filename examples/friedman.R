@@ -62,3 +62,4 @@ cor(pp, scale(test$y))
 qplot(1:length(hb_model$sigma), hb_model$sigma)
 qplot(1:length(hb_model$sigma), hb_model$sigma_phi)
 qplot(test$y, pp) + geom_abline()
+

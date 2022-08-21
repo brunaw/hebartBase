@@ -1,8 +1,8 @@
 # In case you're installing, building, or removing the package:
-# remove.packages("hebartBase")
-# devtools::document()
-# devtools::check()
-# devtools::install()
+remove.packages("hebartBase")
+devtools::document()
+devtools::check()
+devtools::install()
 
 # Exemplifying:
 # Package loading  ----------------------------------
@@ -11,7 +11,7 @@ library(ggplot2)
 library(lme4)
 library(tidymodels)
 library(dbarts)
-# library(hebartBase)
+library(hebartBase)
 
 # Dataset split  ------------------------------------
 set.seed(2022)
@@ -21,13 +21,14 @@ data_split  <- initial_split(df_real)
 train       <- training(data_split)
 test        <- testing(data_split)
 groups      <- train$group
+num_trees   <- 10
 
 # Running the model ----------------------------------
 
 hb_model <- hebart(y ~ X1,
                    data = train,
                    group_variable = "group", 
-                   num_trees = 10,
+                   num_trees = num_trees,
                    priors = list(
                      alpha = 0.95, # Prior control list
                      beta = 2,
@@ -50,7 +51,12 @@ pp <- predict_hebart(newX = matrix(test$X1, ncol = 1), new_groups = test$group,
                      hebart_posterior  = hb_model, 
                      type = "mean")
 
-sqrt(mean((pp - test$y)^2)) # 31.99092
+
+pp <- predict_hebart(newX = test, new_groups = test$group,
+                     hebart_posterior  = hb_model, 
+                     type = "mean")
+
+sqrt(mean((pp - test$y)^2)) # 27.6762
 cor(pp, test$y)
 qplot(test$y, pp) + geom_abline()
 qplot(1:length(hb_model$sigma), hb_model$sigma)
