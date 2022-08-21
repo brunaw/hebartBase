@@ -152,7 +152,7 @@ hb_model
 # Number of covariates:    1 
 # Training error (MSE):    0.279567 
 # R Squared:               0.720433
-plot(hb_model$samples_k1)
+#plot(hb_model$samples_k1)
 pp <- predict_hebart(newX = matrix(test$X1, ncol = 1), new_groups = test$group,
                      hebart_posterior  = hb_model, type = "mean")
 sqrt(mean(pp - scale(test$y))^2) # 0.01617428 (much better)
