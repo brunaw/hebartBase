@@ -11,7 +11,8 @@ library(ggplot2)
 library(lme4)
 library(tidymodels)
 library(dbarts)
-library(hebartBase)
+#library(hebartBase)
+devtools::load_all(".")
 
 # Dataset split  ------------------------------------
 set.seed(2022)
@@ -47,9 +48,10 @@ hb_model <- hebart(y ~ X1,
                    )
 hb_model
 
-pp <- predict_hebart(newX = matrix(test$X1, ncol = 1), new_groups = test$group,
-                     hebart_posterior  = hb_model, 
-                     type = "mean")
+# Let's not use matrices 
+# pp <- predict_hebart(newX = matrix(test$X1, ncol = 1), new_groups = test$group,
+#                      hebart_posterior  = hb_model, 
+#                      type = "mean")
 
 
 pp <- predict_hebart(newX = test, new_groups = test$group,

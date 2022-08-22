@@ -32,9 +32,6 @@ hebart(
 \item{inits}{A list with initial values for parameters}
 
 \item{MCMC}{A list with MCMC parameters}
-
-\item{k_1_pars}{A list to decide whether to sample k1 or not and if yes, from
-which range}
 }
 \value{
 A list containing:

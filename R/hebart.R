@@ -285,7 +285,8 @@ hebart <- function(formula,
   )
 
   # RMSE calculation
-  pred <- predict_hebart(X, groups, result, type = "mean")
+  pred <- predict_hebart(newX = data, new_groups = groups, 
+                         hebart_posterior = result, type = "mean")
   mse <- mean((pred - y)^2)
   rmse <- sqrt(mse)
   r.squared <- 1 - mse / stats::var(y)

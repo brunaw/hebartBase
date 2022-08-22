@@ -3,7 +3,7 @@
 # devtools::document()
 # devtools::check()
 # devtools::install()
-
+ 
 # Exemplifying:
 # Package loading  ----------------------------------
 library(magrittr)
@@ -26,7 +26,7 @@ num_trees   <- 10
 
 # Running the model ----------------------------------
 
-hb_model <- hebart(y ~ X1 + X2,
+hb_model <- hebart(formula = y ~ X1 + X2,
                    data = train,
                    group_variable = "group", 
                    num_trees = num_trees,
@@ -48,7 +48,7 @@ hb_model <- hebart(y ~ X1 + X2,
                    )
 hb_model # RMSE 2.886606 with 10 trees
 
-pp <- predict_hebart(newX = data.frame(test$X1, test$X2), 
+pp <- predict_hebart(newX = data.frame(X1 = test$X1, X2 = test$X2), 
                      new_groups = test$group,
                      hebart_posterior  = hb_model, 
                      type = "mean")
