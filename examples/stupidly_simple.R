@@ -53,15 +53,15 @@ hb_model <- hebart(y ~ x,
                      nu = 2,
                      lambda = 0.1,
                      tau_mu = 16 * num_trees,
-                     shape_tau_phi = 0.5,
-                     scale_tau_phi = 1
+                     shape_sigma_phi = 0.5,
+                     scale_sigma_phi = 1
                    ), 
                    inits = list(tau = 1,
-                                tau_phi = 0.01),
+                                sigma_phi = 0.01),
                    MCMC = list(iter = 1500, 
                                burn = 500, 
                                thin = 1,
-                               tau_phi_sd = 10)
+                               sigma_phi_sd = 10)
 )
 hb_model
 
@@ -69,7 +69,7 @@ pp <- predict_hebart(newX = matrix(test$x, ncol = 1), new_groups = test$group,
                      hebart_posterior  = hb_model, 
                      type = "mean")
 
-sqrt(mean(pp - test$y)^2) 
+sqrt(mean((pp - test$y)^2))
 cor(pp, test$y)
 qplot(test$y, pp) + geom_abline()
 qplot(1:length(hb_model$sigma), hb_model$sigma)
