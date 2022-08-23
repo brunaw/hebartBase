@@ -46,12 +46,26 @@ hb_model <- hebart(formula = y ~ X1,
                                thin = 1,
                                sigma_phi_sd = 0.5)
                    )
+<<<<<<< HEAD
 # Let's not use matrices 
 # pp <- predict_hebart(newX = matrix(test$X1, ncol = 1), new_groups = test$group,
 #                      hebart_posterior  = hb_model, 
 #                      type = "mean")
 
 
+||||||| 4d7330e
+hb_model
+
+# Let's not use matrices 
+# pp <- predict_hebart(newX = matrix(test$X1, ncol = 1), new_groups = test$group,
+#                      hebart_posterior  = hb_model, 
+#                      type = "mean")
+
+
+=======
+hb_model
+
+>>>>>>> 077532739cdfe099404234488005a050910b6fa6
 pp <- predict_hebart(newX = test, new_groups = test$group,
                      hebart_posterior  = hb_model, 
                      type = "mean")
@@ -61,6 +75,7 @@ cor(pp, test$y)
 qplot(test$y, pp) + geom_abline()
 qplot(1:length(hb_model$sigma), hb_model$sigma)
 qplot(1:length(hb_model$sigma), hb_model$sigma_phi)
+qplot(1:length(hb_model$sigma), hb_model$log_lik)
 
 stop()
 

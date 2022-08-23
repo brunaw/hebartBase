@@ -258,11 +258,11 @@ hebart <- function(formula,
     tau_phi <- 1 / (sigma_phi^2)
 
     # Get the overall log likelihood
-    log_lik <- sum(stats::dnorm(y_scale, 
-                                mean = predictions, 
-                                sd = sigma, 
-                                log = TRUE))
-    
+    Omega_y <- diag(n)/tau + tcrossprod(S1)/(num_trees * tau_phi) + 
+      tcrossprod(S2)/tau_mu
+    log_lik <- mvnfast::dmvn(
+      y, rep(0, n), Omega_y, log = TRUE)
+      
   } # End iterations loop
   cat("\n") # Make sure progress bar ends on a new line
 

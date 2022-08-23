@@ -7,6 +7,7 @@
 
 # Clear workspace and load in packages
 library(tidyverse)
+devtools::load_all(".")
 
 # Create this data set
 set.seed(123)
@@ -61,11 +62,12 @@ hb_model <- hebart(y ~ x,
                    MCMC = list(iter = 1500, 
                                burn = 500, 
                                thin = 1,
-                               sigma_phi_sd = 10)
+                               sigma_phi_sd = 1)
 )
 hb_model
 
-pp <- predict_hebart(newX = matrix(test$x, ncol = 1), new_groups = test$group,
+pp <- predict_hebart(newX = data.frame(x = test$x), 
+                     new_groups = test$group,
                      hebart_posterior  = hb_model, 
                      type = "mean")
 
