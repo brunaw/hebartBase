@@ -122,7 +122,7 @@ predict_hebart <- function(newX, new_groups, hebart_posterior,
   response_name <- all.vars(formula)[1]
   names_x <- all.vars(formula[[3]])
   new_formula <- paste0("~", paste0(names_x, collapse = "+"))
-  new_formula <- as.formula(new_formula)
+  new_formula <- stats::as.formula(new_formula)
   formula_int <- stats::as.formula(paste(c(new_formula), "- 1"))
   mf   <- stats::model.frame(formula_int,  data = newX)
   newX <- as.matrix(stats::model.matrix(formula_int, mf))

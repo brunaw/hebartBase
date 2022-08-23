@@ -1,7 +1,7 @@
 # In case you're installing, building, or removing the package:
 # remove.packages("hebartBase")
-# devtools::document()
-# devtools::check()
+devtools::document()
+devtools::check()
 # devtools::install()
 
 # Exemplifying:
@@ -46,26 +46,11 @@ hb_model <- hebart(formula = y ~ X1,
                                thin = 1,
                                sigma_phi_sd = 0.5)
                    )
-<<<<<<< HEAD
 # Let's not use matrices 
 # pp <- predict_hebart(newX = matrix(test$X1, ncol = 1), new_groups = test$group,
 #                      hebart_posterior  = hb_model, 
 #                      type = "mean")
 
-
-||||||| 4d7330e
-hb_model
-
-# Let's not use matrices 
-# pp <- predict_hebart(newX = matrix(test$X1, ncol = 1), new_groups = test$group,
-#                      hebart_posterior  = hb_model, 
-#                      type = "mean")
-
-
-=======
-hb_model
-
->>>>>>> 077532739cdfe099404234488005a050910b6fa6
 pp <- predict_hebart(newX = test, new_groups = test$group,
                      hebart_posterior  = hb_model, 
                      type = "mean")
@@ -93,7 +78,6 @@ qplot(test$y, pp) + geom_abline()
 # Comparison to LME --------------------------
 lme_ss <- lme4::lmer(y ~ X1 + (1|group), train)
 pp <- predict(lme_ss, test)
-<<<<<<< HEAD
 sqrt(mean(pp - scale(test$y))^2) # 0.009018843
 cor(pp, scale(test$y)) # 0.8426536
 qplot(test$y, pp)
