@@ -19,12 +19,11 @@ set.seed(2022)
 df_real     <- nlme::Orthodont %>% 
   set_names(c('y', 'X1', 'group', 'X2')) %>%
   unite("group2", X2:group)
-df_real$y   <- df_real$y
 data_split  <- initial_split(df_real)
 train       <- training(data_split)
 test        <- testing(data_split)
 groups      <- train$group
-num_trees   <- 20
+num_trees   <- 40
 
 # Running the model ----------------------------------
 
@@ -48,14 +47,14 @@ hb_model <- hebart(formula = y ~ X1,
                                thin = 1,
                                sigma_phi_sd = 0.5)
                    )
-hb_model # RMSE 2.415329  with 10 trees
+hb_model # RMSE 1.196674  with 10 trees
 
-pp <- predict_hebart(newX = data.frame(X1 = test$X1, X2 = test$X2), 
-                     new_groups = test$group,
+pp <- predict_hebart(newX = data.frame(X1 = test$X1), 
+                     new_groups = test$group2,
                      hebart_posterior  = hb_model, 
                      type = "mean")
 
-sqrt(mean((pp - test$y)^2)) # 2.21197
+sqrt(mean((pp - test$y)^2)) # 1.820915
 cor(pp, test$y)
 qplot(test$y, pp) + geom_abline()
 qplot(1:length(hb_model$sigma), hb_model$sigma)
@@ -64,7 +63,7 @@ qplot(1:length(hb_model$sigma), hb_model$sigma_phi)
 stop()
 
 # Comparison to BART --------------------------
-bart_0 = dbarts::bart2(y ~ X1 + X2, 
+bart_0 = dbarts::bart2(y ~ X1, 
                        #n.trees = 15,
                        data = train,
                        test = test,
@@ -75,7 +74,7 @@ cor(pp, test$y) #   0.4983258
 qplot(test$y, pp) + geom_abline()
 
 # Comparison to LME --------------------------
-lme_ss <- lme4::lmer(y ~ X1 + X2 +  (1|group), train)
+lme_ss <- lme4::lmer(y ~ X1 + (1|group2), train)
 pp <- predict(lme_ss, test)
 sqrt(mean((pp - test$y)^2)) # 1.192692
 cor(pp, test$y) # 0.9268964
