@@ -17,8 +17,8 @@ devtools::load_all(".")
 # Dataset split  ------------------------------------
 set.seed(2022)
 df_real     <- nlme::Orthodont %>% 
-  set_names(c('y', 'X1', 'group', 'X2')) %>%
-  unite("group2", X2:group)
+  set_names(c('y', 'X1', 'group', 'X2')) %>% 
+  select(-X2)
 data_split  <- initial_split(df_real)
 train       <- training(data_split)
 test        <- testing(data_split)

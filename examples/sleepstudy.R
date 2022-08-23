@@ -1,8 +1,8 @@
 # In case you're installing, building, or removing the package:
-remove.packages("hebartBase")
-devtools::document()
-devtools::check()
-devtools::install()
+# remove.packages("hebartBase")
+# devtools::document()
+# devtools::check()
+# devtools::install()
 
 # Exemplifying:
 # Package loading  ----------------------------------
@@ -48,12 +48,6 @@ hb_model <- hebart(y ~ X1,
                    )
 hb_model
 
-# Let's not use matrices 
-# pp <- predict_hebart(newX = matrix(test$X1, ncol = 1), new_groups = test$group,
-#                      hebart_posterior  = hb_model, 
-#                      type = "mean")
-
-
 pp <- predict_hebart(newX = test, new_groups = test$group,
                      hebart_posterior  = hb_model, 
                      type = "mean")
@@ -63,6 +57,7 @@ cor(pp, test$y)
 qplot(test$y, pp) + geom_abline()
 qplot(1:length(hb_model$sigma), hb_model$sigma)
 qplot(1:length(hb_model$sigma), hb_model$sigma_phi)
+qplot(1:length(hb_model$sigma), hb_model$log_lik)
 
 stop()
 
