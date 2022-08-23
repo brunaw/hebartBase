@@ -64,10 +64,8 @@ get_group_predictions <- function(trees, X, groups, single_tree = FALSE) {
   
   group_names     <- unique(groups)
   num_groups      <- length(unique(groups))
-  group_col_names <- paste0("mu", group_names)
-  group_col_names_all <- paste0("mu", groups)
-  
-  #group_col_names <- unique(paste0("mu", groups))
+  group_col_names <- paste0("phi", group_names)
+  group_col_names_all <- paste0("phi", groups)
   
   # Normally trees will be a list of lists but just in case
   if (single_tree) {
@@ -85,7 +83,7 @@ get_group_predictions <- function(trees, X, groups, single_tree = FALSE) {
       for (i in 1:length(actual_node_indices)) {
         curr_groups <- groups[curr_X_node_indices == actual_node_indices[i]]
         predictions[curr_X_node_indices == actual_node_indices[i]] <-
-          trees$tree_matrix[actual_node_indices[i], paste0("mu", curr_groups)]
+          trees$tree_matrix[actual_node_indices[i], paste0("phi", curr_groups)]
       }
     }
     # More here to deal with more complicated trees - i.e. multiple trees
@@ -117,7 +115,28 @@ predict_hebart <- function(newX, new_groups, hebart_posterior,
                            type = c("all", "median", "mean")) {
   # Create predictions based on a new feature matrix
   # Note that there is minimal error checking in this - newX needs to be right!
+  if(!is.data.frame(newX)){
+    stop("Please use a data.frame")
+  } 
+  formula     <- hebart_posterior$formula
+  response_name <- all.vars(formula)[1]
+  names_x <- all.vars(formula[[3]])
+  new_formula <- paste0("~", paste0(names_x, collapse = "+"))
+  new_formula <- as.formula(new_formula)
+  formula_int <- stats::as.formula(paste(c(new_formula), "- 1"))
+  mf   <- stats::model.frame(formula_int,  data = newX)
+  newX <- as.matrix(stats::model.matrix(formula_int, mf))
   
+#   if(is.data.frame(newX)){
+#     newX <- matrix(newX[, names_x], ncol = length(names_x))
+#   }
+#   
+#   if(ncol(newX) != length(names_x)){
+#     stop("Please use a matrix with the same \
+# number of covariates used during training")
+#   }
+  
+
   # Create holder for predicted values
   n_its <- length(hebart_posterior$sigma)
   y_hat_mat <- matrix(NA,
@@ -142,10 +161,11 @@ predict_hebart <- function(newX, new_groups, hebart_posterior,
   }
   
   # Sort out what to return
+  inv_scale <- function(x) (x + 0.5) * (hebart_posterior$y_max - hebart_posterior$y_min) + hebart_posterior$y_min
   out <- switch(type,
-                all = y_hat_mat,
-                mean = apply(y_hat_mat, 2, "mean"),
-                median = apply(y_hat_mat, 2, "median")
+                all = inv_scale(y_hat_mat),
+                mean = apply(inv_scale(y_hat_mat), 2, "mean"),
+                median = apply(inv_scale(y_hat_mat), 2, "median")
   )
   
   return(out)

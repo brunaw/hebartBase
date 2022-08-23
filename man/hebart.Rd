@@ -10,10 +10,10 @@ hebart(
   group_variable,
   num_trees = 2,
   control = list(node_min_size = 5),
-  priors = list(alpha = 0.95, beta = 2, k_1 = 1e-10, k_2 = 0.2, nu = 3, lambda = 0.1),
-  inits = list(tau = 1),
-  MCMC = list(iter = 250, burn = 50, thin = 1),
-  k_1_pars = list(sample_k1 = FALSE, min_u = 0, max_u = 5, k1_prior = TRUE)
+  priors = list(alpha = 0.95, beta = 2, nu = 2, lambda = 0.1, tau_mu = 16 * num_trees,
+    shape_sigma_phi = 0.5, scale_sigma_phi = 1),
+  inits = list(tau = 1, tau_phi = 1),
+  MCMC = list(iter = 250, burn = 50, thin = 1, sigma_phi_sd = 2)
 )
 }
 \arguments{
@@ -32,9 +32,6 @@ hebart(
 \item{inits}{A list with initial values for parameters}
 
 \item{MCMC}{A list with MCMC parameters}
-
-\item{k_1_pars}{A list to decide whether to sample k1 or not and if yes, from
-which range}
 }
 \value{
 A list containing:
@@ -46,10 +43,10 @@ other results obtained in the last iteration of the MCMC
 }
 \details{
 Priors used ----------------------------------------------------------
-y_{ij} ~ Normal(m_j, tau^-{1})
-tau    ~ Gamma(alpha, beta)
-mu     ~ Normal(0, tau_mu = k2*tau^-{1})
-mu_j   ~ Normal(mu, k1*tau^-{1})
+y_{ij} ~ Normal(m_j, tau^-1)
+tau    ~ Gamma(nu/2, nu*lambda/2)
+mu     ~ Normal(0, tau_mu^-1)
+phi    ~ Normal(mu, sigma_phi^2 / T)
 ----------------------------------------------------------------------
 }
 \author{
