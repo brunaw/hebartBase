@@ -16,19 +16,21 @@ devtools::load_all(".")
 
 # Dataset split  ------------------------------------
 set.seed(2022)
-df_real     <- nlme::Orthodont %>% set_names(c('y', 'X1', 'group', 'X2'))
+df_real     <- nlme::Orthodont %>% 
+  set_names(c('y', 'X1', 'group', 'X2')) %>%
+  unite("group2", X2:group)
 df_real$y   <- df_real$y
 data_split  <- initial_split(df_real)
 train       <- training(data_split)
 test        <- testing(data_split)
 groups      <- train$group
-num_trees   <- 10
+num_trees   <- 20
 
 # Running the model ----------------------------------
 
-hb_model <- hebart(formula = y ~ X1 + X2,
+hb_model <- hebart(formula = y ~ X1,
                    data = train,
-                   group_variable = "group", 
+                   group_variable = "group2", 
                    num_trees = num_trees,
                    priors = list(
                      alpha = 0.95, # Prior control list
@@ -46,14 +48,14 @@ hb_model <- hebart(formula = y ~ X1 + X2,
                                thin = 1,
                                sigma_phi_sd = 0.5)
                    )
-hb_model # RMSE 2.886606 with 10 trees
+hb_model # RMSE 2.415329  with 10 trees
 
 pp <- predict_hebart(newX = data.frame(X1 = test$X1, X2 = test$X2), 
                      new_groups = test$group,
                      hebart_posterior  = hb_model, 
                      type = "mean")
 
-sqrt(mean((pp - test$y)^2)) # 2.663748
+sqrt(mean((pp - test$y)^2)) # 2.21197
 cor(pp, test$y)
 qplot(test$y, pp) + geom_abline()
 qplot(1:length(hb_model$sigma), hb_model$sigma)

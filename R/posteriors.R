@@ -31,7 +31,7 @@ full_conditional_hebart <- function(tree, R, num_trees, tau, tau_phi, tau_mu, M)
     M_j <- M[tree$node_indices == which_terminal[i], , drop = FALSE]
     R_j <- R[tree$node_indices == which_terminal[i], drop = FALSE]
     Omega_R <- diag(nj[i])/tau + tcrossprod(M_j)/(num_trees * tau_phi) + 
-      matrix(tau_mu, ncol = nj[i], nrow = nj[i])
+      matrix(1/tau_mu, ncol = nj[i], nrow = nj[i])
     log_cond <- log_cond + mvnfast::dmvn(
       R_j, rep(0, nj[i]), Omega_R, log = TRUE
     )
