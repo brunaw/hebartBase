@@ -18,11 +18,18 @@ devtools::load_all(".")
 set.seed(2022)
 df_real     <- nlme::Orthodont %>% set_names(c('y', 'X1', 'group', 'X2'))
 df_real$y   <- df_real$y
+df_real$X1  <- as.factor(df_real$X1)
 data_split  <- initial_split(df_real)
 train       <- training(data_split)
 test        <- testing(data_split)
 groups      <- train$group
 num_trees   <- 10
+
+
+df_real |> 
+  ggplot(aes(X1, y)) +
+  geom_point() +
+  facet_wrap(~group)
 
 # Running the model ----------------------------------
 

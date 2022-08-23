@@ -1,8 +1,8 @@
 # In case you're installing, building, or removing the package:
-remove.packages("hebartBase")
-devtools::document()
-devtools::check()
-devtools::install()
+# remove.packages("hebartBase")
+# devtools::document()
+# devtools::check()
+# devtools::install()
 
 # Exemplifying:
 # Package loading  ----------------------------------
@@ -26,7 +26,7 @@ num_trees   <- 10
 
 # Running the model ----------------------------------
 
-hb_model <- hebart(y ~ X1,
+hb_model <- hebart(formula = y ~ X1,
                    data = train,
                    group_variable = "group", 
                    num_trees = num_trees,
@@ -46,8 +46,6 @@ hb_model <- hebart(y ~ X1,
                                thin = 1,
                                sigma_phi_sd = 0.5)
                    )
-hb_model
-
 # Let's not use matrices 
 # pp <- predict_hebart(newX = matrix(test$X1, ncol = 1), new_groups = test$group,
 #                      hebart_posterior  = hb_model, 

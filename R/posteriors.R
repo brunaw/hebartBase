@@ -107,7 +107,8 @@ simulate_mu_hebart <- function(tree, R, tau, tau_phi, tau_mu, M, num_trees) {
   # Simulate mu values for a given tree
   
   # First find which rows are terminal nodes
-  which_terminal <- which(tree$tree_matrix[, "terminal"] == 1)
+  which_terminal     <- which(tree$tree_matrix[, "terminal"] == 1)
+  which_non_terminal <- which(tree$tree_matrix[, "terminal"] == 0)
   
   # Get node sizes for each terminal node
   nj <- tree$tree_matrix[which_terminal, "node_size"]
@@ -123,6 +124,7 @@ simulate_mu_hebart <- function(tree, R, tau, tau_phi, tau_mu, M, num_trees) {
                                                               mean,
                                                               sd = 1/sqrt(Prec_bit))
   }
+  tree$tree_matrix[which_non_terminal, "mu"] <- NA
   
   return(tree)
 }
@@ -148,6 +150,7 @@ simulate_phi_hebart <- function(tree, R, groups, tau, tau_phi, M, num_trees) {
 
   # First find which rows are terminal nodes
   which_terminal <- which(tree$tree_matrix[, "terminal"] == 1)
+  which_non_terminal <- which(tree$tree_matrix[, "terminal"] == 0)
   
   # Get node sizes for each terminal node
   nj <- tree$tree_matrix[which_terminal, "node_size"]
@@ -169,6 +172,8 @@ simulate_phi_hebart <- function(tree, R, groups, tau, tau_phi, M, num_trees) {
                                                              sigma = solve(Prec_bit))
     
   }
+  
+  tree$tree_matrix[which_non_terminal, sort(group_col_names)] <- NA
   
   return(tree)
 }
