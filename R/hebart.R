@@ -75,11 +75,29 @@ hebart <- function(formula,
   # Extract control parameters
   node_min_size <- control$node_min_size
 
+  
+  # --------------------------------------------------------------------
+  # Finding a value for the parameters of the prior to sigma
+  #---------------------------------------------------------------------
+  my_lm <- stats::lm(formula, data)
+  res <- sqrt(stats::deviance(my_lm)/stats::df.residual(my_lm))
+  
+  nu <- priors$nu         # Parameter 1 for precision
+  lambda <- priors$lambda # Parameter 2 for precision
+  p_inv <- invgamma::pinvgamma(q = res, shape = nu/2, rate = nu*lambda/2)
+  
+  # Putting high probabilities of the BCART improving a linear model
+  while(p_inv < 0.95){
+    p_inv <- invgamma::pinvgamma(q = res, shape = nu/2, rate = nu*lambda/2)
+    if(p_inv < 0.95){
+      nu = abs(nu + stats::rnorm(1))
+      lambda = abs(lambda + stats::rnorm(1))
+    }
+  }
+  
   # Extract hyper-parameters
   alpha <- priors$alpha # Tree shape parameter 1
   beta <- priors$beta # Tree shape parameter 2
-  nu <- priors$nu # Parameter 1 for precision
-  lambda <- priors$lambda # Parameter 2 for precision
   tau_mu <- priors$tau_mu # Overall mean precision
   shape_sigma_phi <- priors$shape_sigma_phi # Weibull prior parameters
   scale_sigma_phi <- priors$scale_sigma_phi

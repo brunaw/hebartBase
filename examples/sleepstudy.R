@@ -1,7 +1,7 @@
 # In case you're installing, building, or removing the package:
 # remove.packages("hebartBase")
-devtools::document()
-devtools::check()
+# devtools::document()
+# devtools::check()
 # devtools::install()
 
 # Exemplifying:
