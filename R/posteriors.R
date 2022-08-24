@@ -255,7 +255,9 @@ create_S <- function(curr_trees, groups = NULL){
 #' @param scale_sigma_phi Weibull scale parameter
 #' @param num_trees Number of trees
 #' @param sigma_phi_sd Standard deviation of proposal distribution
-update_sigma_phi <- function(y, S1, S2, sigma_phi, tau_mu, tau, shape_sigma_phi, scale_sigma_phi, num_trees, sigma_phi_sd = 0.1){
+update_sigma_phi <- function(y, S1, S2, sigma_phi, tau_mu, tau, 
+                             shape_sigma_phi, scale_sigma_phi, num_trees, 
+                             sigma_phi_sd = 0.1){
   
   repeat {
     # Proposal distribution

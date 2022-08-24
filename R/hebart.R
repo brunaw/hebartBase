@@ -35,7 +35,8 @@ hebart <- function(formula,
                      lambda = 0.1,
                      tau_mu = 16 * num_trees,
                      shape_sigma_phi = 0.5,
-                     scale_sigma_phi = 1
+                     scale_sigma_phi = 1,
+                     sample_sigma_phi = TRUE
                    ),
                    inits = list(
                      tau = 1,
@@ -269,10 +270,12 @@ hebart <- function(formula,
     S1 <- create_S(curr_trees, groups)
     S2 <- create_S(curr_trees)
     
-    sigma_phi <- update_sigma_phi(
-      y_scale, S1, S2, sigma_phi, tau_mu, tau, shape_sigma_phi, scale_sigma_phi, 
-      num_trees, sigma_phi_sd
-    )
+    if(sample_sigma_phi){
+      sigma_phi <- update_sigma_phi(
+        y_scale, S1, S2, sigma_phi, tau_mu, tau, shape_sigma_phi, scale_sigma_phi, 
+        num_trees, sigma_phi_sd
+      )
+    }
     tau_phi <- 1 / (sigma_phi^2)
 
     # Get the overall log likelihood
