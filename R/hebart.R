@@ -36,7 +36,7 @@ hebart <- function(formula,
                      tau_mu = 16 * num_trees,
                      shape_sigma_phi = 0.5,
                      scale_sigma_phi = 1,
-                     sample_sigma_phi = TRUE
+                     c = TRUE
                    ),
                    inits = list(
                      tau = 1,
@@ -102,6 +102,7 @@ hebart <- function(formula,
   tau_mu <- priors$tau_mu # Overall mean precision
   shape_sigma_phi <- priors$shape_sigma_phi # Weibull prior parameters
   scale_sigma_phi <- priors$scale_sigma_phi
+  sample_sigma_phi <- priors$sample_sigma_phi
 
   # Extract initial values
   tau <- inits$tau
