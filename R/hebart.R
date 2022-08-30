@@ -36,7 +36,7 @@ hebart <- function(formula,
                      tau_mu = 16 * num_trees,
                      shape_sigma_phi = 0.5,
                      scale_sigma_phi = 1,
-                     c = TRUE
+                     sample_sigma_phi = TRUE
                    ),
                    inits = list(
                      tau = 1,
@@ -76,16 +76,18 @@ hebart <- function(formula,
   # Extract control parameters
   node_min_size <- control$node_min_size
 
-  
   # --------------------------------------------------------------------
   # Finding a value for the parameters of the prior to sigma
   #---------------------------------------------------------------------
-  my_lm <- stats::lm(formula, data)
-  res <- sqrt(stats::deviance(my_lm)/stats::df.residual(my_lm))
+  lme_form <- paste(paste(c(formula)),
+                    "+ (1|", group_variable, ")")
+  lme_form <- stats::as.formula(lme_form)
+  my_lme   <- lme4::lmer(lme_form, data)
+  res      <- sqrt(stats::deviance(my_lme, REML=FALSE)/stats::df.residual(my_lme))
   
-  nu <- priors$nu         # Parameter 1 for precision
+  nu     <- priors$nu         # Parameter 1 for precision
   lambda <- priors$lambda # Parameter 2 for precision
-  p_inv <- invgamma::pinvgamma(q = res, shape = nu/2, rate = nu*lambda/2)
+  p_inv  <- invgamma::pinvgamma(q = res, shape = nu/2, rate = nu*lambda/2)
   
   # Putting high probabilities of the BCART improving a linear model
   while(p_inv < 0.95){
