@@ -187,7 +187,7 @@ pp <- predict_hebart(newX = matrix(test$X1, ncol = 1), new_groups = test$group,
                      hebart_posterior  = hb_model, type = "mean")
 sqrt(mean(pp - scale(test$y))^2) # 0.01617428 (much better)
 cor(pp, scale(test$y)) # 0.7890124
-||||||| 494c788
+
 sqrt(mean(pp - scale(test$y))^2) # 0.009018843
 cor(pp, scale(test$y)) # 0.8426536
 qplot(test$y, pp)
@@ -296,10 +296,9 @@ pp <- predict_hebart(newX = matrix(test$X1, ncol = 1), new_groups = test$group,
                      hebart_posterior  = hb_model, type = "mean")
 sqrt(mean(pp - scale(test$y))^2) # 0.01617428 (much better)
 cor(pp, scale(test$y)) # 0.7890124
-=======
 sqrt(mean((pp - test$y)^2)) # 33.19528
 cor(pp, test$y) # 0.8426536
->>>>>>> AP_Aug22
+
 qplot(test$y, pp) + geom_abline()
 
 
