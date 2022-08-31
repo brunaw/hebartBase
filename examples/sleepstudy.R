@@ -22,7 +22,7 @@ data_split  <- initial_split(df_real)
 train       <- training(data_split)
 test        <- testing(data_split)
 groups      <- train$group
-num_trees   <- 10
+num_trees   <- 15
 
 # Running the model ----------------------------------
 
@@ -55,7 +55,7 @@ hb_model <- hebart(formula = y ~ X1,
 pp <- predict_hebart(newX = test, new_groups = test$group,
                      hebart_posterior  = hb_model, 
                      type = "mean")
-
+median(hb_model$sigma_phi)  # 0.142378 
 sqrt(mean((pp - test$y)^2)) # 27.6762
 cor(pp, test$y)
 qplot(test$y, pp) + geom_abline()
@@ -66,7 +66,7 @@ qplot(1:length(hb_model$sigma), hb_model$log_lik)
 stop()
 
 # Comparison to BART --------------------------
-bart_0 = dbarts::bart2(y ~ X1, 
+bart_0 = dbarts::bart2(y ~ X1 + group, 
                        #n.trees = 15,
                        data = train,
                        test = test,
@@ -79,7 +79,7 @@ qplot(test$y, pp) + geom_abline()
 # Comparison to LME --------------------------
 lme_ss <- lme4::lmer(y ~ X1 + (1|group), train)
 pp <- predict(lme_ss, test)
-sqrt(mean(pp - scale(test$y))^2) # 0.009018843
+sqrt(mean((pp - test$y)^2))
 cor(pp, scale(test$y)) # 0.8426536
 qplot(test$y, pp)
 

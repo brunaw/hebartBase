@@ -76,28 +76,6 @@ hebart <- function(formula,
   # Extract control parameters
   node_min_size <- control$node_min_size
 
-  # --------------------------------------------------------------------
-  # Finding a value for the parameters of the prior to sigma
-  #---------------------------------------------------------------------
-  lme_form <- paste(paste(c(formula)),
-                    "+ (1|", group_variable, ")")
-  lme_form <- stats::as.formula(lme_form)
-  my_lme   <- lme4::lmer(lme_form, data)
-  res      <- sqrt(stats::deviance(my_lme, REML=FALSE)/stats::df.residual(my_lme))
-  
-  nu     <- priors$nu         # Parameter 1 for precision
-  lambda <- priors$lambda # Parameter 2 for precision
-  p_inv  <- invgamma::pinvgamma(q = res, shape = nu/2, rate = nu*lambda/2)
-  
-  # Putting high probabilities of the BCART improving a linear model
-  while(p_inv < 0.95){
-    p_inv <- invgamma::pinvgamma(q = res, shape = nu/2, rate = nu*lambda/2)
-    if(p_inv < 0.95){
-      nu = abs(nu + stats::rnorm(1))
-      lambda = abs(lambda + stats::rnorm(1))
-    }
-  }
-  
   # Extract hyper-parameters
   alpha <- priors$alpha # Tree shape parameter 1
   beta <- priors$beta # Tree shape parameter 2
@@ -107,11 +85,11 @@ hebart <- function(formula,
   sample_sigma_phi <- priors$sample_sigma_phi
 
   # Extract initial values
-  tau <- inits$tau
-  sigma <- 1 / sqrt(tau)
+  tau       <- inits$tau
+  sigma     <- 1 / sqrt(tau)
   sigma_phi <- inits$sigma_phi
-  tau_phi <- 1 / (sigma_phi^2)
-  log_lik <- 0
+  tau_phi   <- 1 / (sigma_phi^2)
+  log_lik   <- 0
 
   # Extract MCMC details
   iter <- MCMC$iter # Number of iterations
@@ -133,6 +111,30 @@ hebart <- function(formula,
   y_scale <- (y - y_min)/(y_max - y_min) - 0.5
   n <- length(y_scale)
 
+  # --------------------------------------------------------------------
+  # Finding a value for the parameters of the prior to tau
+  #---------------------------------------------------------------------
+  lme_form <- paste(paste(c(formula)),
+                    "+ (1|", group_variable, ")")
+  lme_form <- stats::as.formula(lme_form)
+  data_lme <- dplyr::mutate(data, y = y_scale)
+  my_lme   <- lme4::lmer(lme_form, data_lme)
+  res      <- lme4:::sigma.merMod(my_lme)
+  
+  nu     <- priors$nu         # Parameter 1 for precision
+  lambda <- priors$lambda # Parameter 2 for precision
+  p_inv  <- invgamma::pinvgamma(q = res, shape = nu/2, rate = nu*lambda/2)
+  
+  # Putting high probabilities of the BCART improving a linear model
+  while(p_inv < 0.95){
+    p_inv <- invgamma::pinvgamma(q = res, shape = nu/2, rate = nu*lambda/2)
+    if(p_inv < 0.95){
+      nu = abs(nu + stats::rnorm(1))
+      lambda = abs(lambda + stats::rnorm(1))
+    }
+  }
+  
+  
   # Get the group matrix M
   M <- stats::model.matrix(~ factor(groups) - 1)
   group_sizes <- table(groups)
