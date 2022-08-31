@@ -98,12 +98,14 @@ hebart <- function(formula,
   sigma_phi_sd <- MCMC$sigma_phi_sd # SD parameter for sigma_phi MH update
   
   # Storage containers
-  store_size <- (iter - burn) / thin
-  tree_store <- vector("list", store_size)
-  sigma_store <- rep(NA, store_size)
-  y_hat_store <- matrix(NA, ncol = length(y), nrow = store_size)
-  log_lik_store <- rep(NA, store_size)
+  store_size      <- (iter - burn) / thin
+  tree_store      <- vector("list", store_size)
+  sigma_store     <- rep(NA, store_size)
+  y_hat_store     <- matrix(NA, ncol = length(y), nrow = store_size)
+  log_lik_store   <- rep(NA, store_size)
   sigma_phi_store <- rep(NA, store_size)
+  tau_store       <- rep(NA, store_size)
+  mse_store       <- rep(NA, store_size)
 
   # Scale the response target variable
   y_min <- min(y)
@@ -134,7 +136,24 @@ hebart <- function(formula,
     }
   }
   
-  
+  # --------------------------------------------------------------------
+  # Finding a value for the parameters of the prior to sigma_phi
+  #---------------------------------------------------------------------
+  random_effect <- sqrt(as.data.frame(lme4::VarCorr(my_lme))$vcov[1])
+  p_weibull <- stats::pweibull(random_effect, 
+                               shape = shape_sigma_phi, 
+                               scale = scale_sigma_phi)
+  while(p_weibull > 0.55 | p_weibull < 0.45){
+    p_weibull <- stats::pweibull(random_effect, 
+                                 shape = shape_sigma_phi, 
+                                 scale = scale_sigma_phi)
+    if(p_weibull > 0.55 | p_weibull < 0.45){
+      shape_sigma_phi = abs(shape_sigma_phi + stats::rnorm(1))
+      scale_sigma_phi = abs(scale_sigma_phi + stats::rnorm(1))
+    }
+  }
+
+  #---------------------------------------------------------------------
   # Get the group matrix M
   M <- stats::model.matrix(~ factor(groups) - 1)
   group_sizes <- table(groups)
@@ -168,6 +187,8 @@ hebart <- function(formula,
       y_hat_store[curr, ] <- predictions
       log_lik_store[curr] <- log_lik
       sigma_phi_store[curr] <- sigma_phi
+      tau_store[curr] <- tau
+      mse_store[curr] <- mse 
     }
 
     # Start looping through trees
@@ -262,6 +283,7 @@ hebart <- function(formula,
                                          single_tree = num_trees == 1
     )
 
+    mse <- mean((y_scale - predictions)^2)
     # Update tau
     tau <- update_tau(
       y_scale,
@@ -277,7 +299,8 @@ hebart <- function(formula,
     
     if(sample_sigma_phi){
       sigma_phi <- update_sigma_phi(
-        y_scale, S1, S2, sigma_phi, tau_mu, tau, shape_sigma_phi, scale_sigma_phi, 
+        y_scale, S1, S2, sigma_phi, tau_mu, tau,
+        shape_sigma_phi, scale_sigma_phi, 
         num_trees, sigma_phi_sd
       )
     }
@@ -298,6 +321,8 @@ hebart <- function(formula,
     y_hat = (y_hat_store + 0.5) * (max(y) - min(y)) + min(y),
     log_lik = log_lik_store,
     sigma_phi = sigma_phi_store,
+    tau = tau_store, 
+    mse = mse_store, 
     y = y,
     X = X,
     iter = iter,

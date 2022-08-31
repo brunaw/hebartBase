@@ -22,7 +22,7 @@ data_split  <- initial_split(df_real)
 train       <- training(data_split)
 test        <- testing(data_split)
 groups      <- train$group
-num_trees   <- 15
+num_trees   <- 10
 
 # Running the model ----------------------------------
 
@@ -42,11 +42,12 @@ hb_model <- hebart(formula = y ~ X1,
                    ), 
                    inits = list(tau = 1,
                                 sigma_phi = 1),
-                   MCMC = list(iter = 1500, 
+                   MCMC = list(iter = 700, 
                                burn = 250, 
                                thin = 1,
                                sigma_phi_sd = 0.5)
                    )
+model = hb_model
 # Let's not use matrices 
 # pp <- predict_hebart(newX = matrix(test$X1, ncol = 1), new_groups = test$group,
 #                      hebart_posterior  = hb_model, 
