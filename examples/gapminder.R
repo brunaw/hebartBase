@@ -19,10 +19,11 @@ df_real     <- gapminder_recent_g20 %>%
   select(year, country, lifeExp, year0, decade0) |> 
   set_names(c('X1', 'group', 'y', "X2", "X3"))
 
-dim(df_real)
-data_split  <- initial_split(df_real)
-train       <- training(data_split)
-test        <- testing(data_split)
+
+years <- unique(df_real$X1)
+to_remove <- sample(years, 15)
+train       <- df_real |> filter(!(X1 %in% to_remove))
+test        <- df_real |> filter(X1 %in% to_remove)
 groups      <- train$group
 num_trees   <- 10
 
@@ -30,16 +31,7 @@ num_trees   <- 10
 group_variable <-  "group"
 formula        <- y ~ X1 + X2 + X3
 
-pars   <- list(
-  alpha = 0.95, beta = 2,
-  nu = 3, lambda = 0.1,
-  tau_mu = 16 * num_trees,
-  shape_sigma_phi = 0.5,
-  scale_sigma_phi = 1 # These give mean ~2 and sd ~4
-)
-
 # Running the model ----------------------------------
-
 hb_model <- hebart(formula,
                    data           = train,
                    group_variable = "group", 
@@ -51,22 +43,20 @@ hb_model <- hebart(formula,
                      lambda = 0.1,
                      tau_mu = 16 * num_trees,
                      shape_sigma_phi = 0.5,
-                     scale_sigma_phi = 1
+                     scale_sigma_phi = 1,
+                     sample_sigma_phi = TRUE
                    ), 
                    inits = list(tau = 1,
                                 sigma_phi = 1),
-                   MCMC = list(iter = 1500, 
+                   MCMC = list(iter = 750, 
                                burn = 250, 
                                thin = 1,
                                sigma_phi_sd = 2)
                    )
 pp <- predict_hebart(test, test$group, hb_model, type = "mean")
-sqrt(mean(pp - test$y)^2)
-cor(pp, scale(test$y))
-qplot(1:length(hb_model$sigma), hb_model$sigma)
-qplot(1:length(hb_model$sigma), hb_model$sigma_phi)
-qplot(test$y, pp) + geom_abline()
-
+sqrt(mean(pp - test$y)^2) # 0.5339674
+cor(pp, scale(test$y))  # 0.9881025
+diagnostics(hb_model)
 # Comparison to BART --------------------------
 bart_0 = dbarts::bart2(y ~ X1 + X2 + X3 + group, 
                        #n.trees = 15,
@@ -74,20 +64,18 @@ bart_0 = dbarts::bart2(y ~ X1 + X2 + X3 + group,
                        test = test,
                        keepTrees = TRUE)
 ppbart <- bart_0$yhat.test.mean
-sqrt(mean((ppbart - test$y)^2)) # 53.28167 - 100 trees
-cor(ppbart, test$y) #   0.4983258
-qplot(test$y, ppbart) + geom_abline()
+sqrt(mean((ppbart - test$y)^2)) # 0.8950348- 100 trees
+cor(ppbart, test$y) #    0.9968745
 
 # Comparison to LME --------------------------
 lme_ss <- lme4::lmer(y ~ X1 + X2 + X3 + (1|group), train)
 pplme <- predict(lme_ss, test)
-sqrt(mean((pplme - test$y)^2)) # 33.19528
-cor(pplme, test$y) # 0.8426536
+sqrt(mean((pplme - test$y)^2)) # 4.141876
+cor(pplme, test$y) # 0.9195413
 qplot(test$y, pplme) + geom_abline()
 
 
 # Average predictions 
-
 preds_y <- data.frame(test, pred = pp, pred_lme = pplme)
 
 # preds_y |> 

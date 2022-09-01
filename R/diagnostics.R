@@ -134,8 +134,8 @@ traceplot <- function(model, type = 'tau', sqrt = FALSE){
       ggplot2::geom_hline(yintercept = mean(df_sigma_phi$sigma_phi),
                           colour = '#c95a49', size = 0.5, linetype = 'dotted') +
       ggplot2::geom_line(alpha = 0.4) +
-      ggplot2::scale_y_continuous(breaks = scales::pretty_breaks(n = 7)) +
-      ggplot2::scale_x_continuous(breaks = scales::pretty_breaks(n = 7)) +
+      ggplot2::scale_y_continuous(breaks = scales::pretty_breaks(n = 10)) +
+      ggplot2::scale_x_continuous(breaks = scales::pretty_breaks(n = 10)) +
       ggplot2::labs(y = label_y, x = "Iteration") +
       ggplot2::theme_bw(12)
     
