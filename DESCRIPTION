@@ -18,4 +18,4 @@ Imports:
     mvnfast,
     patchwork, 
     purrr,
-    brms
+    parameters

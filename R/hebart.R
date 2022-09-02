@@ -120,11 +120,11 @@ hebart <- function(formula,
                     "+ (1|", group_variable, ")")
   lme_form <- stats::as.formula(lme_form)
   data_lme <- dplyr::mutate(data, y = y_scale)
-  
-  my_lme   <- brms::brm(lme_form, data_lme,
-                        silent = TRUE)
-  res      <- stats::sd(stats::fitted(my_lme)[, "Estimate"] - y_scale)
-  #res      <- lme4:::sigma.merMod(my_lme)
+  my_lme <- lme4::lmer(lme_form, data_lme)
+  # my_lme   <- brms::brm(lme_form, data_lme,
+  #                      silent = TRUE)
+  #res      <- stats::sd(stats::fitted(my_lme)[, "Estimate"] - y_scale)
+  res      <- lme4:::sigma.merMod(my_lme)
   
   nu     <- priors$nu         # Parameter 1 for precision
   lambda <- priors$lambda # Parameter 2 for precision
@@ -142,14 +142,18 @@ hebart <- function(formula,
   # --------------------------------------------------------------------
   # Finding a value for the parameters of the prior to sigma_phi
   #---------------------------------------------------------------------
-  random_effect     <- lme4::VarCorr(my_lme)$group$sd[1]
-  random_effect_var <- (lme4::VarCorr(my_lme)$group$sd[2])^2
+  #random_effect     <- lme4::VarCorr(my_lme)$group$sd[1]
+  #random_effect_var <- (lme4::VarCorr(my_lme)$group$sd[2])^2
 
-  random_effect     <- lme4::VarCorr(my_lme)$group$sd[1]
-  random_effect_var <- (lme4::VarCorr(my_lme)$group$sd[2])^2
+  random_effect     <- sqrt(as.data.frame(VarCorr(my_lme))$vcov[1])
+  se <- parameters::standard_error(my_lme, effects = "random")$group
+  random_effect_var <- (mean(se)^2)*length(se)
   
   shape_sigma_phi  <-  (random_effect^2)/random_effect_var
   scale_sigma_phi  <-  random_effect_var/random_effect
+  
+  random_effect     <- sqrt(as.data.frame(VarCorr(my_lme))$vcov[1])
+  random_effect_var <- sqrt(as.data.frame(VarCorr(my_lme))$sdcor[1])
   
   # p_weibull <- stats::pweibull(random_effect, 
   #                              shape = shape_sigma_phi, 
