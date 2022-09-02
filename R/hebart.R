@@ -145,7 +145,7 @@ hebart <- function(formula,
   #random_effect     <- lme4::VarCorr(my_lme)$group$sd[1]
   #random_effect_var <- (lme4::VarCorr(my_lme)$group$sd[2])^2
 
-  random_effect     <- sqrt(as.data.frame(VarCorr(my_lme))$vcov[1])
+  random_effect     <- sqrt(as.data.frame(lme4::VarCorr(my_lme))$vcov[1])
   se <- parameters::standard_error(my_lme, effects = "random")$group
   random_effect_var <- (mean(se)^2)*length(se)
   
