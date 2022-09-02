@@ -17,4 +17,5 @@ Imports:
     dplyr,
     mvnfast,
     patchwork, 
-    purrr
+    purrr,
+    brms

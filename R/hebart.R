@@ -120,8 +120,11 @@ hebart <- function(formula,
                     "+ (1|", group_variable, ")")
   lme_form <- stats::as.formula(lme_form)
   data_lme <- dplyr::mutate(data, y = y_scale)
-  my_lme   <- lme4::lmer(lme_form, data_lme)
-  res      <- lme4:::sigma.merMod(my_lme)
+  
+  my_lme   <- brms::brm(lme_form, data_lme,
+                        silent = TRUE)
+  res      <- stats::sd(stats::fitted(my_lme)[, "Estimate"] - y_scale)
+  #res      <- lme4:::sigma.merMod(my_lme)
   
   nu     <- priors$nu         # Parameter 1 for precision
   lambda <- priors$lambda # Parameter 2 for precision
@@ -139,19 +142,27 @@ hebart <- function(formula,
   # --------------------------------------------------------------------
   # Finding a value for the parameters of the prior to sigma_phi
   #---------------------------------------------------------------------
-  random_effect <- sqrt(as.data.frame(lme4::VarCorr(my_lme))$vcov[1])
-  p_weibull <- stats::pweibull(random_effect, 
-                               shape = shape_sigma_phi, 
-                               scale = scale_sigma_phi)
-  while(p_weibull > 0.55 | p_weibull < 0.45){
-    p_weibull <- stats::pweibull(random_effect, 
-                                 shape = shape_sigma_phi, 
-                                 scale = scale_sigma_phi)
-    if(p_weibull > 0.55 | p_weibull < 0.45){
-      shape_sigma_phi = abs(shape_sigma_phi + stats::rnorm(1))
-      scale_sigma_phi = abs(scale_sigma_phi + stats::rnorm(1))
-    }
-  }
+  random_effect     <- lme4::VarCorr(my_lme)$group$sd[1]
+  random_effect_var <- (lme4::VarCorr(my_lme)$group$sd[2])^2
+
+  random_effect     <- lme4::VarCorr(my_lme)$group$sd[1]
+  random_effect_var <- (lme4::VarCorr(my_lme)$group$sd[2])^2
+  
+  shape_sigma_phi  <-  (random_effect^2)/random_effect_var
+  scale_sigma_phi  <-  random_effect_var/random_effect
+  
+  # p_weibull <- stats::pweibull(random_effect, 
+  #                              shape = shape_sigma_phi, 
+  #                              scale = scale_sigma_phi)
+  # while(p_weibull > 0.55 | p_weibull < 0.45){
+  #   p_weibull <- stats::pweibull(random_effect, 
+  #                                shape = shape_sigma_phi, 
+  #                                scale = scale_sigma_phi)
+  #   if(p_weibull > 0.55 | p_weibull < 0.45){
+  #     shape_sigma_phi = abs(shape_sigma_phi + stats::rnorm(1))
+  #     scale_sigma_phi = abs(scale_sigma_phi + stats::rnorm(1))
+  #   }
+  # }
 
   #---------------------------------------------------------------------
   # Get the group matrix M
