@@ -142,19 +142,14 @@ hebart <- function(formula,
   # --------------------------------------------------------------------
   # Finding a value for the parameters of the prior to sigma_phi
   #---------------------------------------------------------------------
-  #random_effect     <- lme4::VarCorr(my_lme)$group$sd[1]
-  #random_effect_var <- (lme4::VarCorr(my_lme)$group$sd[2])^2
-
   random_effect     <- sqrt(as.data.frame(lme4::VarCorr(my_lme))$vcov[1])
-  se <- parameters::standard_error(my_lme, effects = "random")$group
-  random_effect_var <- (mean(se)^2)*length(se)
+  pr <- parameters::model_parameters(my_lme, effects = "random")
+  se <- pr$SE[1]
+  random_effect_var <- se^2
   
   shape_sigma_phi  <-  (random_effect^2)/random_effect_var
   scale_sigma_phi  <-  random_effect_var/random_effect
   
-  # random_effect     <- sqrt(as.data.frame(lme4::VarCorr(my_lme))$vcov[1])
-  # random_effect_var <- sqrt(as.data.frame(lme4::VarCorr(my_lme))$sdcor[1])
-
   #---------------------------------------------------------------------
   # Get the group matrix M
   M <- stats::model.matrix(~ factor(groups) - 1)
