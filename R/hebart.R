@@ -152,21 +152,8 @@ hebart <- function(formula,
   shape_sigma_phi  <-  (random_effect^2)/random_effect_var
   scale_sigma_phi  <-  random_effect_var/random_effect
   
-  random_effect     <- sqrt(as.data.frame(VarCorr(my_lme))$vcov[1])
-  random_effect_var <- sqrt(as.data.frame(VarCorr(my_lme))$sdcor[1])
-  
-  # p_weibull <- stats::pweibull(random_effect, 
-  #                              shape = shape_sigma_phi, 
-  #                              scale = scale_sigma_phi)
-  # while(p_weibull > 0.55 | p_weibull < 0.45){
-  #   p_weibull <- stats::pweibull(random_effect, 
-  #                                shape = shape_sigma_phi, 
-  #                                scale = scale_sigma_phi)
-  #   if(p_weibull > 0.55 | p_weibull < 0.45){
-  #     shape_sigma_phi = abs(shape_sigma_phi + stats::rnorm(1))
-  #     scale_sigma_phi = abs(scale_sigma_phi + stats::rnorm(1))
-  #   }
-  # }
+  # random_effect     <- sqrt(as.data.frame(lme4::VarCorr(my_lme))$vcov[1])
+  # random_effect_var <- sqrt(as.data.frame(lme4::VarCorr(my_lme))$sdcor[1])
 
   #---------------------------------------------------------------------
   # Get the group matrix M
