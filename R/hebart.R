@@ -40,7 +40,8 @@ hebart <- function(formula,
                    ),
                    inits = list(
                      tau = 1,
-                     tau_phi = 1
+                     tau_phi = 1, 
+                     sigma_phi = 1
                    ), # Initial values list
                    MCMC = list(
                      iter = 250, # Number of iterations
@@ -143,13 +144,19 @@ hebart <- function(formula,
   # Finding a value for the parameters of the prior to sigma_phi
   #---------------------------------------------------------------------
   random_effect     <- sqrt(as.data.frame(lme4::VarCorr(my_lme))$vcov[1])
-  pr <- parameters::model_parameters(my_lme, effects = "random")
+  pr <- parameters::model_parameters(my_lme, effects = "random",
+                                     #ci_method = "boot",
+                                     ci_random = TRUE,
+                                     verbose = FALSE)
   se <- pr$SE[1]
   random_effect_var <- se^2
+  
   
   shape_sigma_phi  <-  (random_effect^2)/random_effect_var
   scale_sigma_phi  <-  random_effect_var/random_effect
   
+  # What if we can't estimate the SE(random effect)?
+
   #---------------------------------------------------------------------
   # Get the group matrix M
   M <- stats::model.matrix(~ factor(groups) - 1)

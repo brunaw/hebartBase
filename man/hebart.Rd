@@ -12,7 +12,7 @@ hebart(
   control = list(node_min_size = 5),
   priors = list(alpha = 0.95, beta = 2, nu = 2, lambda = 0.1, tau_mu = 16 * num_trees,
     shape_sigma_phi = 0.5, scale_sigma_phi = 1, sample_sigma_phi = TRUE),
-  inits = list(tau = 1, tau_phi = 1),
+  inits = list(tau = 1, tau_phi = 1, sigma_phi = 1),
   MCMC = list(iter = 250, burn = 50, thin = 1, sigma_phi_sd = 2)
 )
 }
