@@ -15,27 +15,24 @@ library(hebartBase)
 set.seed(1)
 data <- sim_friedman(n = 500)
 test <- sim_friedman(n = 200)
-group_test <- sample(1:3, size = length(test$y), replace = TRUE)
+
 X <- data$X
 y <- data$y
+X_test <- test$X
+y_test <- test$y
 group <- sample(1:3, size = length(y), replace = TRUE)
+group_test <- sample(1:3, size = length(y_test), replace = TRUE)
+
+
 train <- data.frame(y, X, group)
+test  <- data.frame(y = y_test, X_test, group = group_test)
 
 # Model parameters -----------------------------------
 group_variable <-  "group"
 formula        <- y ~ X1 + X2 + X3 + X4 + X5
-
 num_trees <- 4
-pars   <- list(
-  alpha = 0.95, beta = 2,
-  nu = 3, lambda = 0.1,
-  tau_mu = 16 * num_trees,
-  shape_sigma_phi = 0.5,
-  scale_sigma_phi = 1 # These give mean ~2 and sd ~4
-)
 
 # Running the model ----------------------------------
-
 hb_model <- hebart(formula,
                    data           = train,
                    group_variable = "group", 
@@ -47,7 +44,8 @@ hb_model <- hebart(formula,
                      lambda = 0.1,
                      tau_mu = 16 * num_trees,
                      shape_sigma_phi = 0.5,
-                     scale_sigma_phi = 1
+                     scale_sigma_phi = 1,
+                     sample_sigma_phi = TRUE
                    ), 
                    inits = list(tau = 1,
                                 sigma_phi = 1),
@@ -56,10 +54,11 @@ hb_model <- hebart(formula,
                                thin = 1,
                                sigma_phi_sd = 2)
                    )
-pp <- predict_hebart(test$X, group_test, hb_model, type = "mean")
+pp <- predict_hebart(test, test$group, hb_model, type = "mean")
 sqrt(mean(pp - test$y)^2)
 cor(pp, scale(test$y))
-qplot(1:length(hb_model$sigma), hb_model$sigma)
-qplot(1:length(hb_model$sigma), hb_model$sigma_phi)
 qplot(test$y, pp) + geom_abline()
-
+#-----------------------------------------------------------------------
+# There is no need to make comparisons here; 
+# The group is not actually relevant to the modelling
+#-----------------------------------------------------------------------

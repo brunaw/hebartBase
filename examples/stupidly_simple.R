@@ -55,7 +55,8 @@ hb_model <- hebart(y ~ x,
                      lambda = 0.1,
                      tau_mu = 16 * num_trees,
                      shape_sigma_phi = 0.5,
-                     scale_sigma_phi = 1
+                     scale_sigma_phi = 1, 
+                     sample_sigma_phi = TRUE
                    ), 
                    inits = list(tau = 1,
                                 sigma_phi = 0.01),

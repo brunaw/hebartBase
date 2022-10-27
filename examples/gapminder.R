@@ -10,7 +10,7 @@ library(magrittr)
 library(ggplot2)
 library(tidymodels)
 library(firatheme)
-devtools::load_all(".")
+library(hebartBase)
 load("data/gapminder_recent_g20.RData")
 
 # Dataset split  ------------------------------------
@@ -20,12 +20,12 @@ df_real     <- gapminder_recent_g20 %>%
   set_names(c('X1', 'group', 'y', "X2", "X3"))
 
 
-years <- unique(df_real$X1)
-to_remove <- sample(years, 15)
+years       <- unique(df_real$X1)
+to_remove   <- sample(years, 15)
 train       <- df_real |> filter(!(X1 %in% to_remove))
 test        <- df_real |> filter(X1 %in% to_remove)
 groups      <- train$group
-num_trees   <- 10
+num_trees   <- 5
 
 # Model parameters -----------------------------------
 group_variable <-  "group"
@@ -48,41 +48,50 @@ hb_model <- hebart(formula,
                    ), 
                    inits = list(tau = 1,
                                 sigma_phi = 1),
-                   MCMC = list(iter = 750, 
+                   MCMC = list(iter = 300, 
                                burn = 250, 
                                thin = 1,
                                sigma_phi_sd = 2)
                    )
 pp <- predict_hebart(test, test$group, hb_model, type = "mean")
-sqrt(mean(pp - test$y)^2) # 0.5339674
+sqrt(mean((pp - test$y)^2)) # 1.907164
 cor(pp, scale(test$y))  # 0.9881025
+pp_train <- predict_hebart(train, train$group, hb_model, type = "mean")
+sqrt(mean(pp_train - train$y)^2) # 0.0001694319
 diagnostics(hb_model)
+
 # Comparison to BART --------------------------
-bart_0 = dbarts::bart2(y ~ X1 + X2 + X3 + group, 
-                       #n.trees = 15,
+bart_0 = dbarts::bart2(y ~ X1 + X2 + X3, 
                        data = train,
                        test = test,
                        keepTrees = TRUE)
 ppbart <- bart_0$yhat.test.mean
-sqrt(mean((ppbart - test$y)^2)) # 0.8950348- 100 trees
-cor(ppbart, test$y) #    0.9968745
+sqrt(mean((ppbart - test$y)^2)) # 7.944524
+cor(ppbart, test$y) #    0.698455
+
+ppbart <- bart_0$yhat.train.mean
+sqrt(mean((ppbart - train$y)^2)) # 0.8950348- 100 trees
+
+# BART+Group
+bart_0 = dbarts::bart2(y ~ X1 + X2 + X3 + group, 
+                       data = train,
+                       test = test,
+                       keepTrees = TRUE)
+ppbart <- bart_0$yhat.test.mean
+sqrt(mean((ppbart - test$y)^2)) # 0.9425852
+cor(ppbart, test$y) #    0.99683
+
+ppbart <- bart_0$yhat.train.mean
+sqrt(mean((ppbart - train$y)^2)) # 0.3275252
 
 # Comparison to LME --------------------------
 lme_ss <- lme4::lmer(y ~ X1 + X2 + X3 + (1|group), train)
 pplme <- predict(lme_ss, test)
-sqrt(mean((pplme - test$y)^2)) # 4.141876
-cor(pplme, test$y) # 0.9195413
-qplot(test$y, pplme) + geom_abline()
-
+sqrt(mean((pplme - test$y)^2)) # 3.991818
+cor(pplme, test$y) # 0.936175
 
 # Average predictions 
 preds_y <- data.frame(test, pred = pp, pred_lme = pplme)
-
-# preds_y |> 
-#   group_by(group) |> 
-#   summarise(
-#     m = mean((y - pred)^2)
-#   )
 
 preds_y |> 
   filter(group %in% c("China", "South Africa", "Russia", 
@@ -113,10 +122,7 @@ preds_y |>
     guide = guide_legend(override.aes = list(
       size = c(3, 3, 3), shape = c(16, 16, 16)))) + 
   theme_fira()
-# theme(panel.spacing.x = unit(0.5, "lines"), 
-#       legend.position = "bottom")
-
-ggsave("results/pred_gapminder.png", width = 7, height = 8)
+# ------------------------------------------------------------------------------
 # ------------------------------------------------------------------------------
 
 

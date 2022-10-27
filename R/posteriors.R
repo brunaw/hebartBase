@@ -284,13 +284,6 @@ update_sigma_phi <- function(y, S1, S2, sigma_phi, tau_mu, tau,
                                     shape = shape_sigma_phi,
                                     scale = scale_sigma_phi, log = TRUE)
   
-  #prior_current   <- stats::dweibull(sigma_phi, 
-  #                                   shape = shape_sigma_phi, 
-  #                                   scale = scale_sigma_phi, log = TRUE)
-  #prior_candidate <- stats::dweibull(new_sigma_phi, 
-  #                                   shape = shape_sigma_phi, 
-  #                                   scale = scale_sigma_phi, log = TRUE)
-  
   log.alpha <- (post_candidate - post_current) + (prior_candidate - prior_current) + log_rat
 
   accept <- log.alpha >= 0 || log.alpha >= log(stats::runif(1))
