@@ -151,9 +151,10 @@ hebart <- function(formula,
   se <- pr$SE[1]
   random_effect_var <- se^2
   
-  
-  shape_sigma_phi  <-  (random_effect^2)/random_effect_var
-  scale_sigma_phi  <-  random_effect_var/random_effect
+  if(!is.na(se)){
+    shape_sigma_phi  <-  (random_effect^2)/random_effect_var
+    scale_sigma_phi  <-  random_effect_var/random_effect
+  }
   
   # What if we can't estimate the SE(random effect)?
 

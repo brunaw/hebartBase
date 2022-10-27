@@ -46,7 +46,7 @@ Examples
 library(magrittr)
 library(ggplot2)
 library(tidymodels)
-library(hebart)
+library(hebartBase)
 
 # Dataset split  ------------------------------------
 set.seed(2022)
@@ -56,19 +56,29 @@ data_split  <- initial_split(df_real)
 train       <- training(data_split)
 test        <- testing(data_split)
 
-# Model parameters -----------------------------------
-group_variable <-  "group"
-formula        <- y ~ X1
-pars           <- list(
-  k1 = 8, k2 = 5, alpha = 0.5, beta = 1, mu_mu = 0
+# Running the model ----------------------------------
+hb_model <- hebart(formula = y ~ X1,
+                   data = train,
+                   group_variable = "group", 
+                   num_trees = num_trees,
+                   priors = list(
+                     alpha = 0.95, # Prior control list
+                     beta = 2,
+                     nu = 2,
+                     lambda = 0.1,
+                     tau_mu = 16 * num_trees,
+                     shape_sigma_phi = 0.5,
+                     scale_sigma_phi = 1,
+                     sample_sigma_phi = TRUE
+                   ), 
+                   inits = list(tau = 1,
+                                sigma_phi = 1),
+                   MCMC = list(iter = 500, 
+                               burn = 250, 
+                               thin = 1,
+                               sigma_phi_sd = 0.5)
 )
 
-# Running the model ----------------------------------
-hb_model <- hebart(formula,
-                   dataset   = train,
-                   iter      = 500, burn_in = 150, 
-                   num.trees = 50, group_variable, pars,
-                   min_u     = 0, max_u = 20, scale = FALSE)
 hb_model
 
 Hebart result
@@ -76,22 +86,20 @@ Hebart result
 Formula:
  y ~ X1 
 
-Number of trees:         50 
+Number of trees:         10 
 Number of covariates:    1 
-Prediction error (MSE):  0.150179 
-R squared:               0.8402177 
+Training error (RMSE):    0.3851619 
+R Squared:                0.842164 
 
 
 # Making predictions ----------------------------------
-pred_test <- predict_hebart(
-  hb_model, newdata = test, 
-  group_variable = group_variable, formula = formula
-)
+pred_test <- predict_hebart(newX = test, new_groups = test$group,
+                            hebart_posterior  = hb_model, type = "mean")
 
 # Predictions in the test set --------------------------
 data.frame(
-  y = test$y, pred = pred_test$pred, 
-  group = pred_test$group 
+  y = test$y, pred = pred_test, 
+  group = test$group 
 )  %>% 
   ggplot(aes(x = y, y = pred)) +
   geom_point(aes(colour = factor(group)), size = 2) +
@@ -127,19 +135,19 @@ Citation
 To cite this package in publications, please use:
 
 ```
-Bruna Wundervald (2022). hebart: Hierachical Embedded Bayesian Additive Regression Trees. R package version 0.1.0.
-https://CRAN.R-project.org/package=hebart 
+Bruna Wundervald (2022). hebartBase: Hierachical Embedded Bayesian Additive Regression Trees. R package version 0.1.0.
+https://CRAN.R-project.org/package=hebartBase 
 ```
 
 A BibTeX entry for LaTeX users is
 
 ```
 @Manual{,
-  title = {hebart: Hierachical Embedded Bayesian Additive Regression Trees},
+  title = {hebartBase: Hierachical Embedded Bayesian Additive Regression Trees},
   author = {Bruna Wundervald},
   year = {2022},
   note = {R package version 0.1.0},
-  url = {https://CRAN.R-project.org/package=hebart},
+  url = {https://CRAN.R-project.org/package=hebartBase},
 }
 ```
 
