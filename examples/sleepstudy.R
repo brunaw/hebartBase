@@ -13,6 +13,7 @@ library(lme4)
 library(tidymodels)
 library(dbarts)
 library(hebartBase)
+library(brms)
 
 # Dataset split  ------------------------------------
 set.seed(2022)
@@ -75,5 +76,15 @@ pp_lme <- predict(lme_ss, test)
 sqrt(mean((pp_lme - test$y)^2))  # 33.19528
 cor(pp_lme, scale(test$y)) 
 qplot(test$y, pp_lme)
+
+# Comparison to BLME --------------------------
+pr = prior(normal(0, 1), class = 'b')
+blme <-  brm(
+  y ~ X1 + (1 |group), data = train, prior = pr, cores = 4)
+blme
+pp_blme <- predict(blme, test)
+sqrt(mean((pp_blme - test$y)^2))  # 33.19528
+cor(pp_blme, scale(test$y)) 
+qplot(test$y, pp_blme[, "Estimate"])
 #----------------------------------------------------------------------
 #----------------------------------------------------------------------
