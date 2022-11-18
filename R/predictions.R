@@ -59,6 +59,24 @@ get_predictions <- function(trees, X, single_tree = FALSE) {
 
 get_group_predictions <- function(trees, X, groups, single_tree = FALSE) {
   
+  
+  train_groups <- hebart_posterior$groups
+  new_groups <- unique(groups)
+  # Are those new groups?
+  which_new <- new_groups[!(new_groups %in% train_groups)]
+  if(length(which_new) > 1){
+    X_new <- X[groups %in% which_new, ]
+    inds_new <- which(groups %in% which_new)
+    inds_old <- which(!groups %in% which_new)
+    pred_new <- get_predictions(trees, X_new, single_tree = single_tree)
+    X_old <- X[!(groups %in% which_new), ]
+    if(nrow(X_new) == nrow(X)){
+      return(pred_new)
+    }
+  } else{
+    X_old <- X
+  }
+  
   # Stop nesting problems in case of multiple trees
   if (is.null(names(trees)) & (length(trees) == 1)) trees <- trees[[1]]
   
@@ -74,10 +92,10 @@ get_group_predictions <- function(trees, X, groups, single_tree = FALSE) {
       predictions <- trees$tree_matrix[1, group_col_names][group_col_names_all]
     } else {
       # Loop through the node indices to get predictions
-      predictions <- rep(NA, nrow(X))
+      predictions <- rep(NA, nrow(X_old))
       unique_node_indices <- unique(trees$node_indices)
       # Get the node indices for the current X matrix
-      curr_X_node_indices <- fill_tree_details(trees, X)$node_indices
+      curr_X_node_indices <- fill_tree_details(trees, X_old)$node_indices
       actual_node_indices  <- unique(curr_X_node_indices)
       # Now loop through all node indices to fill in details
       for (i in 1:length(actual_node_indices)) {
@@ -91,10 +109,16 @@ get_group_predictions <- function(trees, X, groups, single_tree = FALSE) {
     # Do a recursive call to the function
     partial_trees <- trees
     partial_trees[[1]] <- NULL # Blank out that element of the list
-    predictions <- get_group_predictions(trees[[1]], X, groups, single_tree = TRUE) +
-      get_group_predictions(partial_trees, X, groups,
+    predictions <- get_group_predictions(trees[[1]], X_old, groups, single_tree = TRUE) +
+      get_group_predictions(partial_trees, X_old, groups,
                             single_tree = length(partial_trees) == 1
       )
+  }
+  
+  if(exists("pred_new")){
+    final <- data.frame(ind = c(inds_new, inds_old), 
+                        predictions = pred_new, predictions)
+    predictions <- final$predictions
   }
   
   return(predictions)
