@@ -16,7 +16,7 @@ hebart description goes here
 You can currently install the latest version of `hebart` from the github repository with:
   ``` r
 # install.packages("devtools")
-devtools::install_github("brunaw-hebart")
+devtools::install_github("brunaw/hebartBase")
 ```
 
 This package wil soon be on CRAN; 
