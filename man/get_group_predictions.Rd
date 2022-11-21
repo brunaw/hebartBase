@@ -4,7 +4,7 @@
 \alias{get_group_predictions}
 \title{HEBART Group predictions}
 \usage{
-get_group_predictions(trees, X, groups, single_tree = FALSE)
+get_group_predictions(trees, X, groups, single_tree = FALSE, hebart_posterio)
 }
 \arguments{
 \item{trees}{The current trees}
