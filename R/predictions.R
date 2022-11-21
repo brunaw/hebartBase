@@ -58,7 +58,7 @@ get_predictions <- function(trees, X, single_tree = FALSE) {
 # Get group predictions ---------------------------------------------------
 
 get_group_predictions <- function(trees, X, groups, single_tree = FALSE, 
-                                  hebart_posterio) {
+                                  hebart_posterior) {
   
   
   train_groups <- hebart_posterior$groups
