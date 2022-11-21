@@ -55,13 +55,14 @@ get_predictions <- function(trees, X, single_tree = FALSE) {
 #' @param X The set of covariates
 #' @param groups The groups specification
 #' @param single_tree Logical to indicate whether we only have one tree
+#' @param old_groups The groups used during training
 # Get group predictions ---------------------------------------------------
 
 get_group_predictions <- function(trees, X, groups, single_tree = FALSE, 
-                                  hebart_posterior) {
+                                  old_groups) {
   
   
-  train_groups <- hebart_posterior$groups
+  train_groups <- unique(old_groups)
   new_groups <- unique(groups)
   # Are those new groups?
   which_new <- new_groups[!(new_groups %in% train_groups)]
@@ -110,10 +111,10 @@ get_group_predictions <- function(trees, X, groups, single_tree = FALSE,
     # Do a recursive call to the function
     partial_trees <- trees
     partial_trees[[1]] <- NULL # Blank out that element of the list
-    predictions <- get_group_predictions(trees[[1]], X_old, groups, single_tree = TRUE) +
+    predictions <- get_group_predictions(trees[[1]], X_old, groups, single_tree = TRUE, old_groups = old_groups) +
       get_group_predictions(partial_trees, X_old, groups,
                             single_tree = length(partial_trees) == 1,
-                            hebart_posterior = hebart_posterior
+                            old_groups = old_groups
       )
   }
   
@@ -152,7 +153,7 @@ predict_hebart <- function(newX, new_groups, hebart_posterior,
   formula_int <- stats::as.formula(paste(c(new_formula), "- 1"))
   mf   <- stats::model.frame(formula_int,  data = newX)
   newX <- as.matrix(stats::model.matrix(formula_int, mf))
-  
+  old_groups <- hebart_posterior$groups
 #   if(is.data.frame(newX)){
 #     newX <- matrix(newX[, names_x], ncol = length(names_x))
 #   }
@@ -183,7 +184,7 @@ predict_hebart <- function(newX, new_groups, hebart_posterior,
                                             X = newX,
                                             groups = new_groups,
                                             single_tree = length(curr_trees) == 1,
-                                            hebart_posterior = hebart_posterior
+                                            old_groups = old_groups
     )
   }
   

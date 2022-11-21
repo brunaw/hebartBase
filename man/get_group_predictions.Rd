@@ -4,7 +4,7 @@
 \alias{get_group_predictions}
 \title{HEBART Group predictions}
 \usage{
-get_group_predictions(trees, X, groups, single_tree = FALSE, hebart_posterio)
+get_group_predictions(trees, X, groups, single_tree = FALSE, old_groups)
 }
 \arguments{
 \item{trees}{The current trees}
@@ -14,6 +14,8 @@ get_group_predictions(trees, X, groups, single_tree = FALSE, hebart_posterio)
 \item{groups}{The groups specification}
 
 \item{single_tree}{Logical to indicate whether we only have one tree}
+
+\item{old_groups}{The groups used during training}
 }
 \description{
 A function that returns the group predictions for a hebart model

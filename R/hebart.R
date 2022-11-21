@@ -171,7 +171,9 @@ hebart <- function(formula,
     y = y_scale,
     X = X
   )
-  predictions <- get_group_predictions(curr_trees, X, groups, single_tree = num_trees == 1)
+  predictions <- get_group_predictions(curr_trees, X, groups, 
+                                       single_tree = num_trees == 1, 
+                                       old_groups = groups)
 
   # Set up a progress bar
   pb <- utils::txtProgressBar(
@@ -206,7 +208,8 @@ hebart <- function(formula,
         current_partial_residuals <- y_scale -
           get_group_predictions(
             trees = partial_trees, X, groups,
-            single_tree = num_trees == 2
+            single_tree = num_trees == 2, 
+            old_groups = groups
           )
       } else {
         current_partial_residuals <- y_scale
@@ -285,7 +288,8 @@ hebart <- function(formula,
     predictions <- get_group_predictions(curr_trees, 
                                          X, 
                                          groups, 
-                                         single_tree = num_trees == 1
+                                         single_tree = num_trees == 1,
+                                         old_groups = groups
     )
 
     mse <- mean((y_scale - predictions)^2)
